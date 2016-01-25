@@ -2,8 +2,8 @@ from adom_constants import *
 
 NAME = "Rincewind"
 SEX = MALE
-CLASS = CL_WIZARD
-RACE =  R_GRAY_ELF
+CLASS = CL_BARBARIAN
+RACE =  R_DRAKELING
 TALENTS = [T_ALERT,
            T_MISER,
            T_TREASURE_HUNTER,
@@ -11,10 +11,11 @@ TALENTS = [T_ALERT,
            T_HARDY,
            T_TOUGH_SKIN]
 
-LE = 20
+STARSIGN = "Candle"
+ST = 25
+TO = 26
 #TALENT_COUNT = 100
-#ITEMS = {ITEM_BOOK: [r'Teleport',r'Invisibil',r'Frost Bolt'], ITEM_RING: [r'summoning'] }
-ITEMS = { ITEM_RING: [r'summoning'] }
+#ITEMS = {ITEM_SCROLL: [r'familiar'] }
 
 
 
