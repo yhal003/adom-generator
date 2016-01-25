@@ -11,11 +11,7 @@ TALENTS = [T_ALERT,
            T_HARDY,
            T_TOUGH_SKIN]
 
-#STARSIGN = "Candle"
-#ST = 25
-#TO = 26
-#TALENT_COUNT = 100
-ITEMS = {ITEM_WEAPON: [r'leprecon'] }
+ITEMS = {ITEM_WEAPON: [r'bloody'] }
 
 
 

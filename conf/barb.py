@@ -1,6 +1,6 @@
 from adom_constants import *
 
-NAME = "Rincewind"
+NAME = "Barb1"
 SEX = MALE
 CLASS = CL_BARBARIAN
 RACE =  R_DRAKELING
@@ -14,8 +14,7 @@ TALENTS = [T_ALERT,
 STARSIGN = "Candle"
 ST = 25
 TO = 26
-#TALENT_COUNT = 100
-#ITEMS = {ITEM_SCROLL: [r'familiar'] }
+
 
 
 
