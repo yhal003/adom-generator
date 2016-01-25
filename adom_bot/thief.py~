@@ -1,0 +1,20 @@
+from adom_constants import *
+
+NAME = "Chaos"
+SEX = MALE
+CLASS = CL_THEIF
+RACE =  R_HURTHLING
+TALENTS = [T_CHARMING,
+           T_BOON_TO_THE_FAMILY,
+           T_HEIR,
+           T_ALERT,
+           T_HARDY,
+           T_TOUGH_SKIN]
+
+TALENT_COUNT = 4
+
+LE = 10
+TO = 18
+STARSIGN = "Candle"
+
+#ITEMS = [(ITEM_RING, r'ring[s]? of djinni')]

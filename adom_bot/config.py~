@@ -1,0 +1,5 @@
+ROWS = 25
+COLS = 80
+
+ADOM_PATH = "/home/yhal003/games/adom59/adom/adom"
+

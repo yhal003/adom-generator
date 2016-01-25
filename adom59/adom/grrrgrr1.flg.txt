@@ -1,0 +1,751 @@
+------------------------------------------------------------------------------
+                                 Screenshot
+------------------------------------------------------------------------------
+
+
+
+#.....######                                                         #########
+#@&..&d....#                                                         #.......#
+#..&.&d[...#########################         ########### #############.......#
+#E&&E.[....[.[[["(...[[.%.%........#         #.........# #.........../.......#
+#....################.########.....#         #.........# #.###########.......#
+                    #.#      #.....#         #.........# #.........# #.......#
+                    ###      #...%*#         #..(].....# #.........# #######/#
+                             #####.#         #.........# #.........#       #.#
+                           ..#####[###########.........###.........#       #.#
+                           ........[.[[(...../........././.........#       #.#
+                           ..#####.#################################       #.#
+ ...                         #####.#                                       #.#
+#.....              ###      #.....#     #######   ###########             #.#
+#......             #.#      #.....#     #.....#   #.........#             #.#
+#.....###############.########.....#     #.<...#####.........###############.#
+#.....[...}[[([.?.....[./..........#     #........./........./........[......#
+#..[.....([#########################     #####################################
+#......#####
+#######
+Grrrgrr       St:25  Le:23  Wi:17  Dx:16  To:29  Ch:11  Ap:12  Ma:12  Pe:18 N=
+DV/PV: 99/46   H: -70(418)    P: 0(61)       Exp: 29/5603641   D: 50  M: 38869
+Blessed Invisible Satiated Coward
+------------------------------------------------------------------------------
+
+
+----------------------------------------------------------------------------
+                            Background Information
+----------------------------------------------------------------------------
+
+Name: Grrrgrr             Race: male Dwarf          Class: Ranger
+Eye color: black          Hair color: black         Complexion: ruddy
+Height: 4'2"              Weight: 178 pounds
+Age: 129 (grown-up, 65 years of unnatural aging added in)
+Star sign: Raven          Birthday: 18/Raven (day 18 of the year)
+
+YOUR HISTORY:
+        Your parents are traveling adventurers. They are doing moderately
+ well but are talented enough to survive.
+        During your childhood one of your uncles taught you a lot of things
+ about the history of your people. Your vast knowledge on the legends and
+ the lore of your people made you very popular with your friends because of
+ all the exciting stories you knew.
+        During your youth you had a lot of fun playing with other kids of
+ your age. You always were a natural leader and the center of interest.
+        As a young adult you had to work a lot to finance your
+ apprenticeship. You were often tired and exhausted but all this was
+ forgotten, when you finally achieved your goal.
+        You decided to become a Ranger.
+
+
+----------------------------------------------------------------------------
+                                  Inventory
+----------------------------------------------------------------------------
+Total weight: 2290 stones                Carrying capacity: 3375 stones
+
+He: uncursed adamantium cap [+0, +5]                                  [36s]
+Ne: uncursed ankh                                                      [3s]
+Bo: blessed fine leather armor (named) (+2, +0) [+2, +8] (+15 spd)   [120s]
+Gi: uncursed eternium girdle [+0, +4]                                 [12s]
+Cl: uncursed cloak of invisibility (-1, +0) [+1, +0]                  [30s]
+RH: blessed black long sword (named) (+3, 4d5+3) [+4, +4]             [80s]
+LH: uncursed tower eternium shield (+2) [+13, +4]                     [70s]
+RR: uncursed ring of mental stability [+0, +2] {Le+4}                  [1s]
+LR: blessed ring of ice                                                [1s]
+Br: uncursed bracers of regeneration [+0, +0]                         [18s]
+Ga: uncursed elemental gauntlets (-1, +0) [+0, +3]                    [10s]
+Bo: blessed seven league boots [+1, +0]                               [30s]
+MW: -
+Mi: blessed rune-covered trident (+6, 3d12+6) [+4, +4] {Dx+12}        [80s]
+Tl: -
+
+
+----------------------------------------------------------------------------
+                                    Stuff
+----------------------------------------------------------------------------
+
+Total weight: 1799 stones   Carrying capacity: 3375 stones
+
+Helmets ('[')
+   blessed crown of regeneration [+0, +0]                             [55s]
+Armor ('[')
+   uncursed ancient mummy wrapping [+1, +5] {Ap-8}                    [60s]
+Shields ('[')
+   uncursed dwarven shield "Rolf's Saviour" (+2) [+9, +6]            [120s]
+Gauntlets ('[')
+   blessed thick gauntlets (-1, -2) [+0, +1]                          [15s]
+   uncursed thick gauntlets (-1, -2) [+0, +1]                         [15s]
+Cloaks ('[')
+   uncursed hooded cloak (+1, +1) [+1, +0]                            [40s]
+Girdles ('[')
+   blessed girdle of carrying [+0, +0]                                [15s]
+   blessed eternium girdle [+0, +4]                                   [12s]
+Boots ('[')
+   uncursed seven league boots [+1, +0]                               [30s]
+Necklaces (''')
+   heap of 4 uncursed amulets of the cold heart {Ch-12}               [12s]
+   heap of 2 uncursed necklaces of rabies resistance                   [4s]
+   uncursed amulet of free action                                      [3s]
+   uncursed amulet of light                                            [3s]
+   heap of 3 uncursed brass amulets                                    [9s]
+   blessed amulet of death ray resistance                              [7s]
+   blessed amulet of order                                             [3s]
+   heap of 2 uncursed amulets of protection +2                         [6s]
+   uncursed necklace of the eye                                        [3s]
+   uncursed amulet of water breathing                                  [3s]
+   uncursed pendant of mana {Ma+2}                                     [3s]
+   uncursed amulet of protection from constructs                       [3s]
+   blessed amulet of balance                                           [3s]
+   uncursed amulet of health                                           [3s]
+   blessed necklace of rabies resistance                               [2s]
+   uncursed amulet of perseverance {Wi+4}                              [3s]
+   uncursed amulet of death ray resistance                             [7s]
+   uncursed amulet of perseverance {Wi+3}                              [3s]
+   uncursed amulet of greed                                            [3s]
+Bracers (',')
+   uncursed brass bracers [+0, +0]                                    [10s]
+   heap of 2 uncursed pairs of bracers of protection [+0, +2]         [20s]
+   blessed bracers of speed [+0, +0] (+4 spd)                         [10s]
+One-handed weapons ('(')
+   blessed rustproof sword of sharpness (+0, 4d8+6)                   [35s]
+Two-handed weapons ('(')
+   uncursed mighty morning star "Grod" (+16, 5d10+5) [-8, +0]        [220s]
+Missile weapons ('}')
+   uncursed light crossbow (+2, +0)                                   [70s]
+   uncursed sling of the long shot (+2, +1)                            [3s]
+   heap of 2 uncursed short bows (+4, +0)                             [40s]
+   blessed light crossbow of accuracy (+8, +0)                        [70s]
+   blessed long bow (+2, +5)                                          [30s]
+Missiles ('/')
+   bundle of 3 blessed quarrels of undead slaying (+3, 2d6+3)         [12s]
+   bundle of 10 uncursed quarrels of humanoid slaying (+3, 2d6+3)     [40s]
+   bundle of 2 blessed arrows of demon slaying (+3, 1d6+3)             [4s]
+   bundle of 6 uncursed quarrels of giant slaying (+3, 2d8+3)         [24s]
+   bundle of 7 uncursed quarrels of undead slaying (+3, 2d6+3)        [28s]
+   uncursed quarrel of jelly slaying (+3, 2d6+3)                       [4s]
+   uncursed arrow of demon slaying (+3, 1d6+3)                         [2s]
+   bundle of 8 blessed arrows of humanoid slaying (+3, 1d6+3)         [16s]
+   bundle of 3 uncursed quarrels of dragon slaying (+3, 2d6+3)        [12s]
+   bundle of 2 uncursed arrows of jelly slaying (+3, 2d4+3)            [4s]
+   bundle of 15 uncursed quarrels of demon slaying (+3, 2d6+3)        [60s]
+   bundle of 7 cursed quarrels (+1, 2d6)                              [14s]
+Tools (']')
+   blessed waterproof blanket                                         [10s]
+   heap of 2 uncursed triangular keys                                  [2s]
+   uncursed square key                                                 [1s]
+   uncursed tiny key                                                   [1s]
+Instruments ('{')
+   uncursed fiddle                                                    [15s]
+Rings ('=')
+   heap of 2 uncursed rings of cold resistance                         [2s]
+   uncursed ring of the clear mind                                     [1s]
+   blessed ring of searching                                           [1s]
+   heap of 4 uncursed rings of stun resistance                         [4s]
+   uncursed ring of speed [+0, +1] (+5 spd)                            [1s]
+   uncursed ring of acid resistance                                    [1s]
+   heap of 3 uncursed rings of searching                               [3s]
+   blessed ring of teleport control                                    [1s]
+   uncursed ring of luck                                               [1s]
+   uncursed ring of speed [+0, +4] (+5 spd)                            [1s]
+   uncursed ring of weakness                                           [1s]
+   cursed ring of stun resistance                                      [1s]
+   blessed ring of the fish                                            [1s]
+   uncursed ring of teleport control                                   [1s]
+   uncursed ring of elemental mastery [+0, +0]                         [1s]
+   uncursed ring of gain attribute {Ap+1}                              [1s]
+   heap of 2 uncursed rings of ice                                     [2s]
+   uncursed wedding ring                                               [1s]
+   cursed ring of mental stability [+2, +1] {Le+1}                     [1s]
+Wands ('\')
+   uncursed wand of trap detection (0 charges)                         [3s]
+   uncursed wand of knocking (5 charges)                               [3s]
+   uncursed wand of ball lightning (0 charges)                         [4s]
+   uncursed wand of light (4 charges)                                  [4s]
+   blessed wand of fireballs (0 charges)                               [3s]
+   uncursed wand of ball lightning (1 charge)                          [4s]
+   uncursed wand of knocking (2 charges)                               [3s]
+   uncursed wand of stunning (3 charges)                               [3s]
+   uncursed wand of teleportation (3 charges)                          [4s]
+   uncursed wand of fireballs (0 charges)                              [3s]
+   uncursed wand of item detection (1 charge)                          [3s]
+   uncursed wand of digging (0 charges)                                [3s]
+   uncursed wand of knocking (10 charges)                              [3s]
+   uncursed wand of acid (4 charges)                                   [4s]
+   uncursed wand of light (7 charges)                                  [4s]
+   uncursed wand of stunning (1 charge)                                [3s]
+   uncursed wand of door creation (5 charges)                          [3s]
+   uncursed wand of digging (0 charges)                                [3s]
+   uncursed wand of digging (0 charges)                                [3s]
+   uncursed wand of lightning (4 charges)                              [4s]
+   uncursed wand of door creation (8 charges)                          [3s]
+   uncursed wand of acid (0 charges)                                   [4s]
+   uncursed wand of fire (4 charges)                                   [4s]
+   uncursed wand of monster detection (3 charges)                      [3s]
+   uncursed wand of acid (1 charge)                                    [4s]
+   uncursed wand of destruction (2 charges)                            [3s]
+   uncursed wand of digging (0 charges)                                [3s]
+   uncursed wand of trap detection (1 charge)                          [3s]
+   uncursed wand of far slaying (3 charges)                            [3s]
+   uncursed wand of digging (0 charges)                                [3s]
+   uncursed wand of gold detection (1 charge)                          [6s]
+   uncursed wand of paralyzation (0 charges)                           [3s]
+   uncursed wand of poison (6 charges)                                 [3s]
+   uncursed wand of stunning (8 charges)                               [3s]
+Potions ('!')
+   heap of 8 uncursed potions of carrot juice                         [32s]
+   heap of 2 blessed potions of carrot juice                           [8s]
+   heap of 3 uncursed potions of boost learning                        [6s]
+   heap of 2 uncursed potions of potential dexterity                   [8s]
+   blessed potion of booze                                             [4s]
+   heap of 5 uncursed potions of invisibility                         [20s]
+   blessed potion of ultra healing                                     [2s]
+   heap of 2 uncursed potions of potential charisma                    [8s]
+   uncursed berzio potion                                              [2s]
+   uncursed potion of potential toughness                              [4s]
+   uncursed potion of exchange                                         [4s]
+   uncursed potion of potential learning                               [4s]
+   uncursed potion of balance                                          [4s]
+   heap of 4 uncursed potions of boost dexterity                       [8s]
+   heap of 2 uncursed potions of boost mana                            [4s]
+   heap of 3 potions of holy water                                    [12s]
+   blessed potion of extra healing                                     [2s]
+   blessed potion of mana                                              [4s]
+   heap of 5 uncursed potions of healing                              [20s]
+   uncursed potion of boost charisma                                   [2s]
+   heap of 6 blessed potions of insight                               [12s]
+   uncursed potion of boost toughness                                  [2s]
+   uncursed potion of wonder                                           [2s]
+   uncursed potion of potential beauty                                 [4s]
+   heap of 2 uncursed potions of insight                               [4s]
+   uncursed potion of potential willpower                              [4s]
+   heap of 2 uncursed potions of boost speed                           [4s]
+   heap of 2 uncursed potions of confusion                             [4s]
+   blessed potion of raw mana                                          [2s]
+   blessed potion of boost strength                                    [2s]
+   uncursed potion of training                                         [2s]
+   uncursed potion of potential strength                               [4s]
+   uncursed oil of rust removal                                        [2s]
+   cursed potion of healing                                            [4s]
+   uncursed potion of stun recovery                                    [2s]
+   blessed potion of willpower                                         [4s]
+   blessed potion of potential mana                                    [4s]
+   heap of 2 uncursed potions of poison                                [8s]
+   uncursed potion of sickness                                         [2s]
+   uncursed potion of boost strength                                   [2s]
+   heap of 4 uncursed potions of water                                [16s]
+   uncursed potion of education                                        [2s]
+Scrolls ('?')
+   uncursed scroll of information                                      [2s]
+   uncursed scroll of warning                                          [2s]
+   heap of 2 uncursed blank scrolls                                    [4s]
+   uncursed scroll of danger                                           [2s]
+   heap of 2 uncursed scrolls of dark predictions                      [4s]
+   heap of 2 uncursed scrolls of increase melee damage                 [4s]
+   heap of 2 uncursed scrolls of defense                               [4s]
+   blessed scroll of uncursing                                         [2s]
+   uncursed papyrus scroll                                             [2s]
+   blessed scroll of identify                                          [2s]
+   heap of 3 blessed scrolls of corruption removal                     [6s]
+   heap of 2 uncursed scrolls of increase melee accuracy               [4s]
+   uncursed scroll of familiar summoning                               [2s]
+   heap of 3 uncursed scrolls of great identify                        [6s]
+   heap of 2 uncursed scrolls of identify                              [4s]
+   uncursed scroll of balance                                          [2s]
+   heap of 2 uncursed scrolls of item detection                        [4s]
+   uncursed scroll of uncursing                                        [2s]
+   blessed scroll of great identify                                    [2s]
+   uncursed scroll of cure blindness                                   [2s]
+   cursed scroll of great identify                                     [2s]
+   uncursed scroll of light                                            [2s]
+Food ('%')
+   heap of 5 uncursed spenseweeds                                     [10s]
+   heap of 38 uncursed cooked lizards                                [114s]
+Gems ('*')
+   uncursed worthless piece of green glass                             [1s]
+   heap of 4 uncursed crystals of light                                [4s]
+   blessed worthless piece of blue glass                               [1s]
+   uncursed worthless piece of blue glass                              [1s]
+   uncursed worthless piece of red glass                               [1s]
+   uncursed worthless piece of brown glass                             [1s]
+   heap of 2 uncursed crystals of darkness                             [2s]
+   uncursed aquamarine                                                 [1s]
+   uncursed sapphire                                                   [1s]
+   uncursed turquoise                                                  [1s]
+   uncursed topaz                                                      [1s]
+   uncursed opal                                                       [1s]
+
+
+----------------------------------------------------------------------------
+                                Weapon Skills
+----------------------------------------------------------------------------
+
+Melee weapon           Lvl   Hit   Dam   DV   Level          Required marks
+---------------------  ---   ---   ---   --   -------------  --------------
+Unarmed fighting         2    +2    +0   +0   basic                36
+Daggers & knives         1    +1    +0   +0   basic                25
+Clubs & hammers          6    +4    +2   +1   skilled              55
+Maces & flails           1    +1    +0   +0   basic                25
+Swords                  13   +14   +10   +4   Mastery              4338
+Axes                     3    +2    +1   +0   basic                65
+Whips                    1    +1    +0   +1   basic                25
+Pole arms                1    +1    +0   +0   basic                25
+Twohanded weapons        7    +6    +9   +2   skilled              428
+Staves                   1    +1    +0   +1   basic                25
+
+Missile weapon         Lvl   Hit   Dam   Ra   Level          Required marks
+
+---------------------  ---   ---   ---   --   -------------  --------------
+Slings                   0    +0    +0   +0   unskilled            7
+Bows                     6   +12    +9   +2   skilled              54
+Crossbows                7   +14   +10   +2   skilled              160
+Thrown axes & hammers    0    +0    +0   +0   unskilled            7
+Thrown daggers           0    +0    +0   +0   unskilled            7
+Thrown rocks & clubs     0    +0    +0   +0   unskilled            7
+Thrown spears            6   +12    +9   +2   skilled              119
+Boomerangs & scurgari    0    +0    +0   +0   unskilled            7
+
+Shields                Lvl   DV               Level          Required marks
+
+---------------------  ---   ---              -------------  --------------
+Shields                  9   +18              excellent            1016
+
+Damage caused with your melee weapons:
+--------------------------------------
+Right hand: +42 bonus to hit, 4d5+19 damage
+
+Damage caused with your missile weapons:
+----------------------------------------
+Ammunition: 1, base range: 11, +44 bonus to hit, 3d8+19 damage
+
+
+
+
+----------------------------------------------------------------------------
+                                   Skills
+----------------------------------------------------------------------------
+
+  Alertness ................100    (superb)       [+1d5]
+  Archery ..................100    (superb)       [+1d3]
+  Athletics ................100    (superb)       [+2d4]
+  Backstabbing .............100    (superb)       [+1d5]
+  Climbing ................. 50    (fair)         [+4d4]
+  Detect traps .............100    (superb)       [+2d4]
+  Dodge ....................100    (superb)       [+1d5]
+  First aid ................ 25    (mediocre)     [+4d4]
+  Food preservation ........100    (superb)       [+2d4]
+  Gardening ................ 62    (good)         [+1d3]
+  Haggling ................. 23    (mediocre)     [+3d4]
+  Healing ..................100    (superb)       [+1d5]
+  Herbalism ................ 83    (great)        [+3d3]
+  Listening ................100    (superb)       [+3d4]
+  Literacy ................. 61    (good)         [+1]
+  Metallurgy ............... 28    (mediocre)     [+4d5]
+  Mining ................... 75    (great)        [+1d3]
+  Smithing ................. 29    (mediocre)     [+3d5]
+  Survival ................. 39    (fair)         [+4d5]
+  Swimming ................. 51    (good)         [+1d5]
+  Tactics .................. 87    (great)        [+1]
+  Two weapon combat ........ 62    (good)         [+4d5]
+  Woodcraft ................ 29    (mediocre)     [+4d5]
+
+
+
+
+----------------------------------------------------------------------------
+                            Effects of Corruption
+----------------------------------------------------------------------------
+
+You rage (DV: -9, +6 melee damage)!
+Your blood turned to acid.
+
+
+
+----------------------------------------------------------------------------
+              His achievements during his battles:
+----------------------------------------------------------------------------
+
+Grrrgrr, the dwarven ranger, was drained by a wand of destruction (after
+winning).
+He scored 2802938 points and advanced to level 29.
+He survived for 0 years, 22 days, 14 hours, 4 minutes and 38 seconds (38869
+turns).
+Grrrgrr visited 101 places.
+His strength score was modified by +5 during his career.
+His learning score was modified by +7 during his career.
+His willpower score was modified by +3 during his career.
+His dexterity score was modified by +5 during his career.
+His toughness score was modified by +9 during his career.
+His charisma score was modified by +3 during his career.
+His appearance score was modified by +4 during his career.
+His mana score was modified by +1 during his career.
+His perception score was modified by +1 during his career.
+He was unnaturally aged by 65 years.
+He was the champion of the arena.
+He made a little water dragon very happy.
+He ended his adventuring life on level 50 of the caverns of chaos.
+2344 monsters perished under his attacks.
+The following 24 artifacts were generated during his adventure:
+  the si
+  the scythe of corruption "Moon Sickle"
+  the potion of literacy
+  the golden gladius "Death's Sting"
+  the dwarven shield "Rolf's Saviour"
+  the black long sword "Kinslayer"
+  the Chaos Orb of Elemental Water
+  the Chaos Orb of Elemental Air
+  the Chaos Orb of Elemental Fire
+  the Chaos Orb of Elemental Earth
+  the staff of the Wanderer
+  the lead-filled mace "Big Punch"
+  the scorched spear
+  the mighty morning star "Grod"
+  the rune-covered trident
+  the sword of Nonnak
+  the elemental gauntlets
+  the crown of science
+  the ancient mummy wrapping
+  the ankh
+  the black torc
+  the Chaos Orb of Elemental Mana
+  the fine leather armor "Nature's Companion"
+  the rune-covered halberd "Wyrmlance"
+He possessed the following intrinsics:
+  He was fire resistant (also through an item).
+  He was poison resistant.
+  He was cold resistant (also through an item).
+  He was acid resistant.
+  He was lucky (also through an item).
+  Fate smiled upon him (also through an item).
+  He was able to control teleportation.
+  He was invisible (gained through an item).
+  He was shock resistant (also through an item).
+  He was able to see invisible things.
+  He was immune to shock attacks.
+  He was immune to fire attacks (gained through an item).
+  He was immune to acidic attacks.
+  He was able to resist confusion attacks (gained through an item).
+He had the following talents: Alert, Hardy, Iron Skin, Miser, Mithril Skin,
+Quick, Steel Skin, Tough Skin, Treasure Hunter, Very Quick.
+He had a final speed score of 134 (final base speed: 124).
+He was a messiah of Clamgaddin.
+He asked for 14 divine interventions.
+He was a holy champion of Balance.
+He was tainted by Chaos.
+
+The following monsters were vanquished:
+     22 air demons
+      1 air elemental
+      3 air grues
+      1 Ancient Chaos Wyrm
+      1 ancient karmic dragon
+      3 ancient minotaurs
+      1 Ancient Stone Beast
+      5 animated trees
+      1 ankheg
+      5 annihilators
+      1 assassin
+      2 balors
+      6 bandits
+      1 banshee
+      1 barbarian
+      3 barbarian leaders
+      2 battle bunnies
+      2 beggars
+      6 berserkers
+      1 berserker king
+      5 berserker lords
+      2 berserker princes
+      4 big dogs
+      1 black baby dragon
+      1 black dragon
+      1 black druid
+      4 black hurthlings
+      2 black slayers
+      2 black wizards
+     11 blink dogs
+      2 blue baby dragons
+      1 bone golem
+      1 brown bear
+      6 bugbears
+      1 bunny master
+      2 carrion crawlers
+      1 cave bear
+      3 cave fishers
+      9 cave lizards
+      1 cave tiger
+     10 cavemen
+      1 Chaos Archmage
+      3 chaos brothers
+      2 chaos eyes
+      3 chaos lizards
+     87 chaos mutants
+      1 chaos plague bearer
+      1 chaos rat
+    130 chaos servants
+      3 chaos sisters
+      3 chaos spiders
+      2 chaos vipers
+      5 chaos warlords
+      8 chaos warriors
+      9 chaos wizards
+      3 claw bugs
+      5 clay golems
+      4 clay statues
+      2 cobras
+      1 cooshoo
+     24 corpse fiends
+      1 corruptor
+      1 crime lord
+      2 crystal statues
+      2 cutpurses
+      1 cyclops
+      3 dark elven archers
+      2 dark elven lords
+      1 dark elven priestess
+      3 dark elven princesses
+      2 dark elven warriors
+      1 dark elven wizard
+      3 dark orcs
+      2 dark sages
+      1 death ooze
+     10 dire wolves
+      6 displacer beasts
+      1 doppelganger
+      2 doppelganger lords
+      2 Dorn Beasts
+      1 dwarf
+      7 dwarven chaos knights
+     28 earth elementals
+      8 ettins
+      3 eyes of destruction
+     20 fire beetles
+     16 fire demons
+     30 fire drakes
+     21 fire elementals
+     20 fire giants
+      4 fire giant kings
+      2 fire grues
+     51 fire lizards
+      1 flesh golem
+      2 floating eyes
+      3 fomorian giants
+     36 frost giants
+      1 frost giant berserker
+      4 frost giant jarls
+      2 frost salamanders
+      1 frozen one
+      1 gargantuan rat
+      6 gargoyles
+      5 gelatinous cubes
+     13 ghosts
+      4 ghost bats
+     35 ghost lords
+     68 ghuls
+      1 giant ant queen
+      5 giant ant warriors
+     12 giant ant workers
+      7 giant bats
+      1 giant bee queen
+     34 giant bee warriors
+      7 giant bee workers
+      3 giant centipedes
+      4 giant frogs
+      8 giant lizards
+      1 giant raccoon
+     14 giant rats
+      2 giant rust monsters
+      2 giant slugs
+     11 giant spiders
+      2 gibbering mouthers
+     29 gnolls
+      3 gnoll chieftains
+     18 goblins
+      6 goblin berserkers
+      7 goblin chieftains
+     17 goblin rockthrowers
+      9 goblin slavemasters
+      2 gray oozes
+     48 greater chaos servants
+      1 greater claw bug
+      3 greater daemons
+      1 greater mimic
+      2 greater molochs
+     12 greater mummies
+      1 greater water elemental
+      2 green blobs
+      1 green hag
+      3 green worms
+      3 gremlins
+      2 griffons
+      2 half-orc bouncers
+      3 harpies
+      4 hell hounds
+     30 hill giants
+      5 hill giant chieftains
+      1 hill orc
+      5 hill orc sergeants
+      5 hippogriffs
+     10 hobgoblins
+      2 hobgoblin chiefs
+      1 homunculus
+      5 huge bats
+      3 hydras
+     34 hyenas
+      1 ice elemental
+      1 ice lizard
+      2 imps
+    112 jackals
+      4 jackal demons
+     24 jackalweres
+      2 karmic lizards
+     53 kobolds
+      5 kobold chieftains
+      6 kobold shamans
+      9 large bats
+      4 large dogs
+     15 large gnolls
+      5 large jackals
+     23 large kobolds
+     14 large orcs
+      1 large rust monster
+      4 large snakes
+     19 large spiders
+      3 least daemons
+      2 lesser daemons
+      2 leucrottas
+      6 liches
+      3 lightning lizards
+     10 lizard men
+     10 magebane eyes
+      7 magedoom eyes
+      1 margoyle
+      1 master assassin
+      1 master lich
+      4 master mimics
+      1 master necromancer
+      1 Master Summoner
+      1 master swordsman
+      1 master thief
+      5 mimics
+      5 minotaurs
+      1 minotaur lord
+      1 minotaur mage
+      1 minotaur mazelord
+      3 mist wolves
+      1 mugger
+     23 mummies
+      1 mummy lord
+      1 necromancer
+      3 ochre jellies
+     41 ogres
+      1 ogre emperor
+      5 ogre kings
+      6 ogre lords
+      3 ogre magi
+      1 oracle
+     18 orcs
+      1 orc butcher
+      4 orc chieftains
+      4 orc scorchers
+      1 outlaw leader
+      5 owlbears
+     27 pit vipers
+      2 pixies
+      2 pixie archers
+      5 quasits
+      3 rabid dogs
+     11 rats
+      8 ratling archers
+      1 ratling duelist
+      5 ratling fencers
+      6 ratling master thieves
+      2 ratling thieves
+      1 ratling trader
+      1 ratling warlord
+      1 ratling warrior
+      4 rattlesnakes
+     18 red baby dragons
+     28 red dragons
+     11 red worms
+      2 rust monsters
+     73 shadows
+      1 shadow centipede
+      3 shadow lords
+      2 shadow trolls
+      3 shambling mounds
+      3 silver wolves
+     12 skeletal warriors
+     85 skeletons
+      3 slow shadows
+      1 Snake from Beyond
+     16 spectres
+      2 staring eyes
+     21 steel golems
+      1 steel zombie
+      7 stone giants
+      1 stone giant lord
+      6 stone golems
+     29 stone grues
+      5 stone snakes
+      5 stone statues
+      1 swamp hydra
+      4 swordsmen
+      9 tarantulas
+     10 trolls
+     20 troll berserkers
+      3 troll chiefs
+      1 troll king
+      1 undead chaos dwarven berserker
+      7 vampires
+     47 vapor rats
+      1 viper
+      7 water demons
+      4 water elementals
+     19 water grues
+     20 water snakes
+      2 wererats
+      6 werewolves
+      1 werewolf lord
+      4 white baby dragons
+      1 white dragon
+      2 white worms
+     52 wights
+      3 will o'wisps
+     29 wolves
+     35 wraiths
+     56 writhing masses of primal chaos
+      3 yellow oozes
+     83 zombies
+
+
+----------------------------------------------------------------------------
+                               Playing Time
+----------------------------------------------------------------------------
+
+You played for 8 hours, 50 minutes and 33 seconds.
+
+
+----------------------------------------------------------------------------
+                             Version Information
+----------------------------------------------------------------------------
+
+Ancient Domains Of Mystery
+Release 59
+Linux ELF Build: Jul 20 2015 19:14:29
+

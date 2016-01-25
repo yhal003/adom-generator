@@ -1,0 +1,1536 @@
+-- simple utilities for use by ADOM
+
+dofile("games/adom-tileengine.noe")
+
+-- one-time permanent choice:
+------------------------------
+
+function choicearr_init()
+  choicearr = {}
+  for y=0,25 do
+    choicearr[y] = {}
+    end
+  end
+
+choicearr_init()
+
+-- caching & finding PC:
+-------------------------
+
+function cachesafe(dx, dy)
+  local T = mapcache[global_y+dy]
+  if T then T = T[global_x+dx] end
+  if T then return T end
+  return {}
+  end
+
+function formatsigned(x)
+  if x and x>=0 then return "+"..x
+  else return x
+  end
+  end
+
+function findpc()
+
+  mapon = Global.is_map_visible
+
+  if mapon == false then
+    return
+  end
+
+  if Global.is_cursor_active then
+    ncursor = V(Global.cursor_x, Global.cursor_y)
+  else
+    if PCData and PCData.x and PCData.y then
+      ncursor = V(PCData.x, PCData.y+map.top.y)
+    else
+      ncursor = V(0, 0)
+      end
+  end
+
+end
+
+-- resets data between games:
+-----------------------------
+
+function handle_game_event_reset(ev)
+  if (ev.game_event_id == gameeventids.GE_NEW_GAME_STARTED or
+      ev.game_event_id == gameeventids.GE_SAVE_GAME_RESTORED) then
+    choicearr_init()
+    end
+  end
+
+
+nepADOM = 64
+nepADOMEvent = 65
+
+function handle_game_event(ev)
+  local recognized = 0
+  for k,v in pairs(gameeventids) do
+    if v == ev.game_event_id then
+      logprint2("event = "..k)
+      adom_nelib_log_info("event = "..k)
+      recognized = recognized + 1
+      end
+    end
+--for k,v in pairs(ev) do if k ~= "game_event_id" then
+--  print(tostring(k).." = "..tostring(v))
+--  end end
+  if recognized ~= 1 then
+    logprint2("warning: event recognized = "..recognized..", event "..ev.game_event_id)
+    end
+  handle_game_event_reset(ev)
+  handle_game_event_anim(ev)
+  handle_game_event_vfx(ev)
+  handle_game_event_music(ev)
+  broadcast(function(X)
+    nwriteint(X, nepADOMEvent)
+    nwriteobj(X, ev)
+    end)
+  end
+
+function cachemap()
+  -- print(addindent().."checking global map")
+  Global = adom_nelib_global_map()
+  -- print(addindent().."checking player map")
+  PCData = adom_nelib_player_map()
+  -- print(addindent().."player map OK")
+  if Global.is_game_running then
+    mapcache = {}
+    for y=0,19 do 
+      mapcache[y] = {}
+      for x=0,79 do 
+        f = adom_nelib_draw_map(x, y)
+        mapcache[y][x] = f
+        end 
+      end
+    end
+  end
+
+function game_event_loop()
+  -- print(addindent().."checking global map")
+  Global = adom_nelib_global_map()
+  -- print(addindent().."checking player map")
+  PCData = adom_nelib_player_map()
+  -- print(addindent().."updating animations")
+  update_animation_infos()
+  -- print(addindent().."anim info OK")
+
+  -- print(addindent().."get events")
+  local events = adom_nelib_get_all_game_events()
+  -- print(addindent().."handle events")
+  for k,v in pairs(events) do
+    print(addindent().."handling event #"..k)
+    handle_game_event(v)
+    end
+  end
+
+do local lcopymap = copymap
+
+function copymap()
+  if not VIEW and not SERVER then
+    cachemap()
+    end
+  if isactive then broadcast(sendadomdata) end
+  D.map = rectXY(0, Global.lines_above_map, 80, 25-Global.lines_below_map)
+  send_config_to_ADOM()
+  lcopymap()
+  detectUI()
+  end
+end
+
+function sendadomdata(X)
+  if mapcache and Global and PCData then
+    nwriteint(X, nepADOM)
+    for y=0,19 do for x=0,79 do nwriteobj(X, mapcache[y][x]) end end
+    nwriteobj(X, Global)
+    nwriteobj(X, PCData)
+    end
+  end
+
+do local lhandlenep = nhandlenep
+
+function nhandlenep(X, rscr, rtime, nep)
+  if nep == nepADOM then
+    for y=0,19 do for x=0,79 do mapcache[y][x] = nreadobj(X) end end
+    Global = nreadobj(X)
+    PCData = nreadobj(X)
+    broadcast(sendadomdata)
+  elseif nep == nepADOMEvent then
+    handle_game_event(nreadobj(X))
+  else lhandlenep(X, rscr, rtime, nep)
+    end
+  end
+end
+
+outdoor = false
+
+-- menus
+---------
+
+local gridoptions = {}
+gridoptions[0] = "disabled"
+gridoptions[1] = "enabled: subtle"
+gridoptions[3] = "enabled: medium"
+gridoptions[4] = "enabled: strong"
+gridoptions[5] = "checkerboard"
+
+noteye_config_variable("tactical", false, "ADOM: is the tactical mode on?", {pick = picktactical})
+noteye_config_variable("showhealthbars", true, "ADOM: show the healthbars?")
+noteye_config_variable("showstatus", true, "ADOM: show the status icons?")
+noteye_config_variable("showalignment", true, "ADOM: show the creature alignment?")
+noteye_config_variable("gridmode", 0, "ADOM: grid mode", {options = gridoptions})
+noteye_config_variable("imageinmonstermemory", true, "ADOM: show an image in monster memory?")
+noteye_config_variable("imagebackgrounds", true, "ADOM: show graphical backgrounds?")
+noteye_config_variable("inventorygraphics", true, "ADOM: show the inventory graphics?")
+
+altmode = {tsx=64, tsy=48, mode = modeASCII, tact = false, showhealthbars = true, showstatus = true, showalignment = true, gridmode=0, minimode = 0,
+  msx=3, msy=5, mpx=0, mpy=0, minimoved = false}
+
+function togglealtmode()
+  local am = altmode
+  setaltmode({
+    tsx=tilesize.x, tsy=tilesize.y, 
+    mode=mode, tact=tactical, 
+    showhealthbars=showhealthbars, showstatus=showstatus, showalignment=showalignment, 
+    gridmode=gridmode, minimode=minimode,
+    msx=minimapsize.x, msy=minimapsize.y, minimoved = minimoved,
+    mpx = cminipos and cminipos.x or 0, mpy = cminipos and cminipos.y or 0})
+  tilesize.x = am.tsx
+  tilesize.y = am.tsy
+  minimapsize.x = am.msx
+  minimapsize.y = am.msy
+  minimoved = am.minimoved
+  cminipos = {x = am.mpx, y = am.mpy}
+  picktactical(am.tact)
+  pickmode(am.mode)
+  pickminimap(am.minimode)
+  pickinteger("gridmode", am.gridmode)
+  pickbool("showhealthbars", am.showhealthbars)
+  pickbool("showstatus", am.showstatus)
+  pickbool("showalignment", am.showalignment)
+  end
+
+function xminimap(X, x, y)
+
+  -- if x == playerpos.x and y == playerpos.y and not PCData.is_blind then
+  --   return tilefill(0xFFC0C0C0)
+  --   end
+  
+  M = mapcache[y][x]
+  if not (M.tile) then
+    return tilefill(0)
+  elseif not M.is_lit then
+    return tilefill(0)
+  elseif M.being_type and M.being_type == beingtypes.PC and not PCData.is_blind then
+    return tilefill(0xFFFFFF)
+  elseif M.being_type and M.being_type >= 0 then
+    return tilefill(0xFF0000)
+  elseif M.item then
+    return tilefill(0xFFD700)
+  elseif M.tile == tileids.FOREST or M.feature == featureids.TREE then
+    return tilefill(0x00C000)
+  elseif M.tile == tileids.SWAMP then
+    return tilefill(0x008000)
+  elseif M.tile == tileids.HILLS then
+    return tilefill(0x808080)
+  elseif M.tile == tileids.MOUNTAIN then
+    return tilefill(0xC0C0C0)
+  elseif M.tile == tileids.HIGH_MOUNTAIN then
+    return tilefill(0xE0E0E0)
+  elseif M.tile == tileids.WATER_SQUARE then
+    return tilefill(0x0000C0)
+  elseif tidroad(M.tile) or tiddoor(M.tile) then
+    return tilefill(0xC06000)
+  elseif M.tile == tileids.OPEN_DOOR then
+    return tilefill(0x804000)
+  elseif tidwall(M.tile) then
+    return tilefill(0x808080)
+  elseif M.feature == featureids.OPEN_TRAP or M.feature == featureids.PIT then
+    return tilefill(0xFF4040)
+  elseif M.feature and M.feature > 0 then
+    return tilefill(0xFF00FF)
+  elseif tidfloor(M.tile) or tidgrass(M.tile) or M.tile == tileids.PLAINS then
+    return tilefill(0x404040)
+  else
+    return tilefill(0xFF00FF)
+    end
+
+--local av,co,ba = gavcoba(X)
+--elseif av == 35 then return tilefill(co) 
+--elseif av == 46 then return 
+--  tilemerge(tilefill(0), tiletransform(tilefill(co), .5,.5,1/minimapsize.x,1/minimapsize.y))
+  end
+
+tm_minimap = xminimap
+-- newmapping(xminimap)
+
+minimapborder = 0x404040
+minimapsize = V(3,5)
+if minimode_default then 
+  minimode = modeASCII 
+  end
+
+-- adjust for the perspective
+local lsettilectr = settilectr
+local ladjusttileext = adjusttileext
+
+function settilectr()
+  lsettilectr()
+  if not tactical and mode ~= modeISO then
+    tilectr = tilectr + tilesize * V(0, 2/3)
+    end
+  end
+
+function adjusttileext()
+  ladjusttileext()
+  if not tactical then
+    tileext.bot.y = tileext.bot.y + 1
+    tileext.size.y = tileext.size.y + 1
+    end
+  end  
+
+function setaltmode(am)
+  cfgscripts.altmode = function(file)
+    file:write("setaltmode({")
+    for k,v in pairs(am) do 
+      file:write(k.."="..(type(v) == "boolean" and booltf(v) or v)..",") 
+      end
+    file:write("cfg=1})\n")
+    end
+  altmode = am
+  end
+
+adommenu = {}
+addtomenu(adommenu, "h", 
+  writechoicef(function()
+    return "show healthbars: "..boolonoff(showhealthbars)
+    end),
+  function()
+    pickbool("showhealthbars", not showhealthbars)
+    end
+  )
+
+addtomenu(adommenu, "s", 
+  writechoicef(function()
+    return "show status: "..boolonoff(showstatus)
+    end),
+  function()
+    pickbool("showstatus", not showstatus)
+    end
+  )
+
+addtomenu(adommenu, "a", 
+  writechoicef(function()
+    return "show alignment: "..boolonoff(showalignment)
+    end),
+  function()
+    pickbool("showalignment", not showalignment)
+    end
+  )
+
+--[[
+addtomenu(adommenu, "D", 
+  writechoicef(function()
+    return "use the Drakalor Chain map: "..boolonoff(usedrakalormap)
+    end),
+  function()
+    pickbool("usedrakalormap", not usedrakalormap)
+    end
+  )
+]]
+
+addtomenu(adommenu, "g", writechoicef(
+  function() 
+    if gridmode == 0 then return "grid and checkerboard disabled"
+    elseif gridmode == 1 then return "subtle grid enabled, checkerboard disabled"
+    elseif gridmode == 2 then return "medium grid enabled, checkerboard disabled"
+    elseif gridmode == 3 then return "strong grid enabled, checkerboard disabled"
+    else return "grid and checkerboard enabled"
+    end
+    end),
+  function()
+    pickinteger("gridmode", (gridmode +1) % 5)
+    return true
+    end
+  )
+
+function picktactical(b)
+  cfgscripts.tactical = function(file)
+    file:write("picktactical("..booltf(b)..")\n")
+    end
+  tactical = b
+  if tactical then tsy = 64 else tsy = 48 end
+  tilesize.y = tilesize.x*tsy/tsx
+  end
+
+addtomenu(adommenu, "t", writechoicef(
+  function() 
+    if tactical then return "tactical mode on"
+    else return "tactical mode off"
+    end
+    end),
+  function()
+    picktactical(not tactical)
+    end
+  )
+
+mouseactive = true
+
+addtomenu(adommenu, "c", writechoicef(
+  function() 
+    if mouseactive then return "mouse control: enabled"
+    else return "mouse control: disabled"
+    end
+    end),
+  function()
+    pickbool("mouseactive", not mouseactive)
+    end
+  )
+
+local ldrawminimap = drawMiniMap
+function drawMiniMap()
+  if casino and imageinmonstermemory then
+    setupMiniMap()
+    drawcasino()
+  elseif not textwindow and ldrawminimap() then
+    V.drawtile(D.output, adomtile("nterface/map", transAlpha), D.cmini)
+    end
+  
+  end
+
+haveZoom = true
+
+addtomenu(techmenu, "v", writechoice("view ADOM tileids"),
+  function()
+    if ncursor then
+    for y=ncursor.y-3,ncursor.y+3 do
+      local line = ""
+      for x=ncursor.x-3,ncursor.x+3 do
+        local mt = mapcache[y]
+        if mt then mt = mt[x] end
+        if mt and mt.tile then line = line .. string.format("%3d", mt.tile)
+        else line = line .. "---" end
+        if mt and mt.feature then line = line .. string.format("[%3d]", mt.feature)
+        else line = line .. "     " end
+        end
+      print(line)
+      end
+      end
+    end
+  )
+
+function adomhdr()
+  menuy = 5
+  title = "ADOM-specific options"
+  scrwrite(IMG, 1, 1, title, Font, vgaget(14))
+  
+  scrwrite(IMG, 1, 3, "Press F10 during the game to switch between two modes (e.g. ascii and tiles)", Font, vgaget(7))
+  end
+
+addtomenu(mainmenu, "x", writechoice("ADOM-specific options"),
+  function()
+    menuexecute(adommenu, adomhdr)
+    end
+  )
+
+addtomenu(adommenu, addnoshift(KEYS.i), writechoicef(
+  function() 
+    return "image in monster memory: "..boolonoff(imageinmonstermemory)
+    end),
+  function()
+    pickbool("imageinmonstermemory", not imageinmonstermemory)
+    end
+  )
+
+addtomenu(adommenu, addshift(KEYS.i), writechoicef(
+  function() 
+    return "inventory graphics: "..boolonoff(inventorygraphics)
+    end),
+  function()
+    pickbool("inventorygraphics", not inventorygraphics)
+    end
+  )
+
+local nhandlespecialkeys = handlespecialkeys
+
+function handlespecialkeys(ev)
+  if nhandlespecialkeys(ev) then return true end
+
+  if iskey(ev, KEYS.F10) and ev.type == evKeyDown then     
+    togglealtmode()
+    return true
+
+    end
+  end
+
+-- function ismenukey(ev)
+--   return false
+--   end
+
+-- function isfullscreenkey(ev)
+--   return false
+--   end
+
+function post_game_command(game_command, x, y)
+  -- messages become old
+  adom_nelib_log_info("posting a command "..game_command.." at "..x..","..y)
+  adom_nelib_log_info(debug.traceback())
+  last_message_event = getticks()
+  -- first we post the game command and its position
+  adom_nelib_post_command_at_position(game_command, x, y)
+  -- then we send a special key event that triggers it
+  local event = { keycode = -1, mod = 0, scancode = 0 }
+  nsendkey2(event, evKeyDown)
+  end
+
+
+ndorotate = dorotate
+function dorotate(ev)
+  return ndorotate(ev) and not textwindow
+  end
+
+menuF4 = false
+tilelayers = {0, 1, 2}
+
+IsoParam = isoparam(64, 48, 64, 48)
+
+tmap_transorshade = tmap_shade
+-- celltransorshade = cellshade
+
+quickshots = false
+
+-- free transformations
+------------------------
+
+centralize = freeformparam(
+  1,0,0,0.5,
+  0,1,0,0,
+  0,0,1,0,
+  0,0,0,1)
+
+halfdoorfp = freeformparam(
+  1,0.5,0,0.9,
+  0,0.5,0,0,
+  0,0,1,0,
+  0,0,0,1)
+          
+halfdoorfp2 = freeformparam(
+  1,0.5,0,0.1,
+  0,0.5,0,0,
+  0,0,1,0,
+  0,0,0,1)
+
+-- tileid checks
+-----------------
+
+function tidwall(ti)
+  return ti == 1 or
+    ti == tileids.WALL or
+    ti == tileids.SOLID_WALL or
+    ti == tileids.SECRET_DOOR or
+    ti == tileids.ROCK or
+    ti == tileids.SOLID_ROCK or
+    ti == tileids.ILLUSION_WALL or
+    ti == nil
+  end
+
+function tidnearwater(ti)
+  return ti == 1 or
+    ti == tileids.WALL or
+    ti == tileids.SOLID_WALL or
+    ti == tileids.WATER_SQUARE or
+    ti == tileids.WATER_LAIR or
+    ti == tileids.ILLUSION_WALL or
+    ti == tileids.SECRET_DOOR or
+    ti == tileids.ICE_SQUARE or
+    ti == tileids.BRIDGE
+  end
+
+function tidhills(ti)
+  return worldtiles[ti][2] == 3
+  end
+
+function tidwater(ti)
+  return ti == tileids.WATER_SQUARE or ti == tileids.WATER_LAIR or
+    ti == tileids.ICE_SQUARE or ti == tileids.BRIDGE
+  end
+
+function tidmount(ti)
+  return worldtiles[ti][2] == 4
+  end
+
+function tidhmount(ti)
+  return worldtiles[ti][2] == 5
+  end
+
+function tidroad(ti)
+  return ti == tileids.ROAD or ti == tileids.SPECIAL_EXIT or ti == tileids.TELEPORT_ENTRY or
+    ti == tileids.BASE_VILLAGE or ti == tileids.PYRAMID_ENTRY
+  end
+
+function tiddoor(ti)
+  return 
+    ti == tileids.LOCKED_DOOR or 
+    ti == tileids.CLOSED_DOOR or
+    ti == tileids.TRAPPED_DOOR or
+    ti == tileids.OBVIOUSLY_TRAPPED_DOOR
+  end
+
+function tidfloor(ti)
+  return 
+    ti == tileids.TUNNEL or
+    ti == tileids.FLOOR or
+    ti == tileids.PASSAGE or
+    ti == tileids.SNOW
+  end
+
+function tidgrass(ti)
+  return (ti == tileids.SPECIAL_EXIT and ts ~= tilesets.ice) or ti == tileids.GRASS
+  end
+
+function tidsnow(ti)
+  return (ti == tileids.SPECIAL_EXIT and ts == tilesets.ice) or ti == tileids.SNOW
+  end
+  
+function knownwallat(x,y) return cachesafe(x,y).tile and chktid(x,y,tidwall) end
+function wallisat(x,y) return chktid(x,y,tidwall) end
+function chktid(x,y,f) return f(cachesafe(x,y).tile) end
+
+-- for fog-of-war
+-- note that this returns false above a wall
+function unknownat(x,y) 
+  if cachesafe(x,y).tile then return false end
+  if knownwallat(x,y+1) and trueslant() then return false end
+  return true
+  end
+
+-- NotEye config
+
+D.map = rectXY(0, 2, 80, 22) -- will be changed!
+
+D.tilesize = V(64, 48)
+
+tsx=64
+tsy=48
+
+print(adom_nelib_window_title())
+
+if havegfx then
+  setwindowtitle(adom_nelib_window_title())
+
+  if windows then
+    adom_nelib_set_window_handle(Gfx)
+    end
+  
+  local icon_path = "icon/icon_32x32.png"
+  if osx then
+    icon_path = "icon/icon_256x256.png"
+    end 
+  setwindowicon(Gfx, loadimage(gfxa..icon_path))
+  end
+
+defaultmode(modeTiles)
+
+lnoteyesleep = noteyesleep
+
+-- ADOM wants to input directions as numbers
+dirkeys = keytabs.number
+
+rotationff = {}
+
+turnright = freeformparam(
+  1,1,0,0,
+  0,0,1,0,
+  0,-1,0,0,
+  0,0,0,1
+  )
+
+turnleft = freeformparam(
+  1,0,1,0,
+  0,0,-1,0,
+  0,1,0,0,
+  0,0,0,1
+  )
+
+adom_to_noteye_dir = {}
+
+adom_to_noteye_dir[directionids.N] = V(0, -1)
+adom_to_noteye_dir[directionids.NE] = V(1, -1)
+adom_to_noteye_dir[directionids.NW] = V(-1, -1)
+adom_to_noteye_dir[directionids.S] = V(0, 1)
+adom_to_noteye_dir[directionids.SE] = V(1, 1)
+adom_to_noteye_dir[directionids.SW] = V(-1, 1)
+adom_to_noteye_dir[directionids.E] = V(1, 0)
+adom_to_noteye_dir[directionids.W] = V(-1, 0)
+
+rotationff[directionids.N] = freeformparam(
+  1, 0,-1/6,0,
+  0, 1,   0,0,
+  0, 0, 4/3,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.NE] = freeformparam(
+  1, 0,-1/6,0,
+  0, 1,   0,0,
+  0, 0, 4/3,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.E] = freeformparam(
+  1, 1,-1/6,0,
+  0, 0, 4/3,0,
+  0,-1,   0,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.SE] = freeformparam(
+  1, 0, 7/6,0,
+  0, 1,   0,0,
+  0, 0,-4/3,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.S] = freeformparam(
+  1, 0, 7/6,0,
+  0, 1,   0,0,
+  0, 0,-4/3,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.SW] = freeformparam(
+  1, 1, 7/6,0,
+  0,-1,   0,0,
+  0, 0,-4/3,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.W] = freeformparam(
+  1, 0, 7/6,0,
+  0, 0,-4/3,0,
+  0, 1,   0,0,
+  0, 0,   0,1
+  )
+
+rotationff[directionids.NW] = freeformparam(
+  1, 1, 1/6,0,
+  0,-1,   0,0,
+  0, 0, 4/3,0,
+  0, 0,   0,1
+  )
+
+-- string functions
+-------------------
+
+function trim(s)
+  return string.match(s,"^()%s*$") and "" or string.match(s,"^%s*(.*%S)")
+end
+
+
+function string:split(inSplitPattern, outResults)
+ if not outResults then
+   outResults = { }
+ end
+ local theStart = 1
+ local theSplitStart, theSplitEnd = string.find( self, inSplitPattern, theStart )
+ while theSplitStart do
+   table.insert( outResults, string.sub( self, theStart, theSplitStart-1 ) )
+   theStart = theSplitEnd + 1
+   theSplitStart, theSplitEnd = string.find( self, inSplitPattern, theStart )
+ end
+ table.insert( outResults, string.sub( self, theStart ) )
+ return outResults
+end
+
+
+function setscreensize(xscrsize)
+--  xscrsize.x = 1024
+--  xscrsize.y = 768
+  end
+
+toolbaroptions = {
+  {"inventory", "i"},
+  {"drink", "D"},
+  {"eat", "e"},
+  {"read", "r"},
+  {"throw", "t"},
+  {"cast a spell", "Z"},
+  {"close door", "c"},
+  {"open door", "o"},
+  {"search", "s"},
+  {"kick", "k"},
+  {"drop", "d"},
+  {"help", "?"},
+  {"zap", "z"},
+  {"save game", "S"},
+  {"enter", ">"},
+  {"ascend", "<"}
+  }
+
+toolbarlen = 100
+
+function lowtoolbar()
+  
+  local fsize = mode == modeASCII and fontsize or guifontsize
+  
+  local opts = #toolbaroptions
+  if not toolx then toolx = 0 toolx2 =0 end
+  if not mousepos then return end
+  local active = mousepos.y >= xscrsize.y-fsize.y*2
+  if active then
+    toolx = mousepos.x / xscrsize.x * opts
+    toolx2 = mousepos.x
+    end
+  local id = math.floor(toolx)
+  local shift = toolx-id
+  local xpos = 0
+  local tpos = 0
+  Toolbar = renewscreen(Toolbar, toolbarlen, 1)
+  for i=0, opts-1 do
+    add = " ["..toolbaroptions[i+1][2].. "] "..toolbaroptions[i+1][1].." "
+    if i == id then 
+      xpos = toolx2-(tpos + shift * string.len(add)) * fsize.x
+      if active then toolbarkey = toolbaroptions[i+1][2] end
+      end
+    scrwrite(Toolbar, tpos, 0, add, Font, (i==id and active and vgaget(14) or vgaget(6)))
+    tpos = tpos + string.len(add)
+    end
+  toolbarlen = tpos
+  
+  drawtile(D.output, tileshade(0), 0, xscrsize.y-fsize.y, xscrsize.x, fsize.y)
+  drawscreen(D.output, Toolbar, xpos, xscrsize.y-fsize.y, fsize.x, fsize.y)
+  end
+
+local tomepages = {
+  {{"@"}, gamecommandids.GC_PC_DESCRIPTION}, 
+  {{"Invn", "Invnt", "Invent", "Inventory"}, gamecommandids.GC_INVENTORY}, 
+  {{"Bkpk", "Backp", "Backpack"}, gamecommandids.GC_STUFF}, 
+  {{"Spls", "Spells"}, gamecommandids.GC_MARK_SPELLS}, 
+  {{"Mdct", "Mindcraft"}, gamecommandids.GC_INVOKE_MINDCRAFT}, 
+  {{"ClPs", "CPwrs", "CPowers", "Class Powers"}, gamecommandids.GC_USE_CLASS_POWER}, 
+  {{"Skls", "Sklls", "Skills"}, gamecommandids.GC_DISPLAY_SKILLS}, 
+  {{"WSks", "Cmbt", "Combat"}, gamecommandids.GC_DISPLAY_WEAPON_SKILLS}, 
+  {{"Tals", "Tlnts", "Talents"}, gamecommandids.GC_TALENTS}, 
+  {{"Cors", "Corruption"}, gamecommandids.GC_CHAOS_POWERS},
+  {{"Qsts", "Quests"}, gamecommandids.GC_QUEST_STATUS}, 
+  {{"Hsty", "Hstry", "Histry", "History"}, gamecommandids.GC_BACKGROUND}
+  }
+
+function processmouse(ev)
+  mousearea = nil
+  if ev and mouseactive then
+    local m = V.floor((ev - screen.top) / fontsize)
+    local mx = m.x
+    local my = m.y
+    mousearea = { x = mx, y = my, x2 = 1, y2 = 1 }
+    
+    local line = getline(24)
+
+    if string.find(line, "SPACE to continue", 1, true) then
+      mousearea.x = 52
+      mousearea.x2 = 28
+      mousearea.y = 24
+      mousearea.key = " "
+      return
+      end
+    
+    local line0 = getline(0)
+    local line1 = getline(1)
+    local linef = line0..line1
+    local lline = getline(24)
+
+    if string.find(linef, "(more)", 1, true) then
+      mousearea.key = " "
+      return
+      end
+    
+    -- scroll menus
+    
+    if ev.type == evMouseWheel and not mapon then
+      if string.find(line, "Line down", 1, true) or 
+        string.find(lline, "Line up") then
+        mousearea.key = ev.dy < 0 and "*" or "_"
+      else
+        mousearea.key = ev.dy < 0 and "+" or "-"
+        end
+      return
+      end
+
+    -- yes/no
+    
+    local function cat(x) return gch(scrget(IMG, x, my)) end
+
+    if cat(mx) == "[" and (cat(mx+1) == "y" or cat(mx+1) == "Y") then
+      mousearea.key = "Y"
+      mousearea.x2 = 2
+      return
+      end
+    
+    if cat(mx-1) == "[" and (cat(mx) == "y" or cat(mx) == "Y") then
+      mousearea.key = "Y"
+      mousearea.x = mousearea.x - 1
+      mousearea.x2 = 2
+      return
+      end
+    
+    if cat(mx+1) == "]" and (cat(mx) == "n" or cat(mx) == "N") then
+      mousearea.key = "N"
+      mousearea.x2 = 2
+      return
+      end
+    
+    if cat(mx) == "]" and (cat(mx-1) == "n" or cat(mx-1) == "N") then
+      mousearea.key = "N"
+      mousearea.x = mousearea.x - 1
+      mousearea.x2 = 2
+      return
+      end
+  
+    -- context menu in backpack
+    if Global and Global.is_item_list_visible then
+      for i = 0,74 do
+        if (cat(i) == '|' and cat(i+2) >= 'A' and cat(i+2) <= 'Z') and cat(i+4) == '-' then
+          mousearea.x = i+1
+          mousearea.x2 = 73-i
+          mousearea.key = cat(i+2)
+          return
+          end
+        end
+      end
+
+    -- lists (inventory, skills, spells etc)
+    for lpos = 0,9 do
+      local ch = cat(lpos)
+
+      if ((ch >= 'a' and ch <= 'y') or (ch >= 'A' and ch <= 'Y')) and cat(lpos+1) == ' ' and cat(lpos+2) == '-' then
+        mousearea.x = 0
+        mousearea.x2 = 80
+        mousearea.key = ch
+        return
+        end
+      end
+    
+    -- bracketed hotkeys
+    local tx = mx
+    while tx >= 0 do 
+      local ch0 = cat(tx)
+      local ch1 = cat(tx+1)
+      local ch2 = cat(tx+2)
+      local brackets = (ch0 == '[') and (ch2 == ']')
+      brackets = brackets or (ch0 == '[' and ch1 == '_' and ch2 == '/')
+      if brackets then
+        mousearea.x = tx
+        mousearea.key = ch1
+        tx = tx+3
+        while tx < 80 do
+          local ch = cat(tx)
+          if (ch == '-') or (ch == '[') then 
+            tx = tx-1
+            break
+            end
+          tx = tx+1
+          end
+        mousearea.x2 = tx - mousearea.x
+        return
+        end
+      tx = tx-1
+      end
+    
+    -- mindcraft uses dots...
+    if (cat(0) >= 'A' and cat(0) <= 'Y') and cat(1) == '.' and cat(2) == ' ' then
+      mousearea.x = 0
+      mousearea.x2 = 80
+      mousearea.key = cat(0)
+      return
+      end
+    
+    if my == 0 and cat(1) == "@" then
+      for k,v in pairs(tomepages) do for k1,v1 in pairs(v[1]) do
+        local x1,x2 = line0:find(v1, 0, true)
+        if x1 and mx >= x1-2 and mx <= x2 then
+          mousearea.x = x1-2
+          mousearea.x2 = x2-x1+3
+          mousearea.key = " "
+          mousearea.post = v[2]
+          return
+          end
+        end end
+      end
+    
+    -- weapon skills (line to see better, click to close)
+    if string.find(getline(2), "Melee weapon", 1, true) then
+      mousearea.x = 0
+      mousearea.x2 = 80
+      mousearea.key = " "
+      return
+      end
+    
+    -- scroll help
+    if string.find(line, "Page up", 1, true) then
+      mousearea.x2 = 0
+      if my < 9 then mousearea.key = "-"
+        elseif my < 12 then mousearea.key = "_"
+        elseif my < 15 then mousearea.key = "*"
+        else mousearea.key = "+"
+        end
+      return
+      end
+    
+    -- toolbar keys
+    if my >= 23 and lowtoolbar_on then
+      mousearea.x2 = 0
+      mousearea.key = toolbarkey
+      return
+      end
+    
+    -- inventory list
+    local size = 15 -- inventory_list_size()
+    if inventorygraphics and Global and Global.is_inventory_visible and isize and ev.y > xscreen.bot.y-isize.y-xscreen.bot.y/size*2 and ev.y < xscreen.bot.y-isize.y-xscreen.bot.y/size*2+48 then
+      local kid = math.floor(isize.size * ev.x / xscreen.bot.x)
+      mousearea = {x=0, x2=80, y=4+kid, y2=1, key = string.char(av("a") + kid),
+        bot = true}
+      return
+      end
+
+    mousearea = nil
+    end
+  end
+
+was_appactive = true
+
+lhandlemouse2 = handlemouse2
+
+function handlemouse2(ev)
+  if not appactive then
+    was_appactive = false
+    return
+    end
+  if not mouse_inside then return end
+
+  -- ignore the first click if the app is activated
+  if not was_appactive and appactive then
+    was_appactive = true
+    return
+    end
+
+  local p = mapon and pixeltoprocess(ev)
+  if p and not (currentmodal and not currentmodal.hidden()) then 
+    mouseposmap = V(math.floor(p.x), math.floor(p.y-D.map.top.y)) 
+    end
+  
+  processmouse(ev)
+  
+  if use_special_hud() and react_to_adom_hud(ev) then
+    return
+    end
+  
+  if (ev.type == evMouseUp or ev.type == evMouseWheel) and 
+    mouseactive and mousearea and mousearea.key then
+    if mousearea.key then
+      nsendtext(mousearea.key)
+      end
+    if mousearea.post then
+      post_game_command(mousearea.post, -1, -1)
+      end
+  elseif mouseactive then
+    if p and ev.type == evMouseDown and mouseposmap then
+      local x = mouseposmap.x
+      local y = mouseposmap.y
+      if adommapclicked and Global.asked_for_command and 
+        adommapclicked(x, y, ev) then
+        return
+        end
+      end
+    return lhandlemouse2(ev)
+    end
+  end
+
+watertick = 0
+
+function display_fadeout_animation()
+  local t = getticks() - fadeout_animation.time
+  
+  local function afun(x)
+    return math.floor(255 * (x/1000)) * 0x10101
+    end
+    
+  if t<1000 then
+
+    local m = mapon
+    mapon = true
+    local d = drawMap()
+    drawMap()
+    mapon = m
+
+    drawtile(Gfx, tilealpha(fadeout_animation.color, afun(t)), 0, 0, xscrsize.x, xscrsize.y)
+    drawtile(Gfx, tilealpha(0, afun(t)), 0, 0, xscrsize.x, xscrsize.y)
+    return axTransparent
+  elseif t<2000 and background_tile and imagebackgrounds then
+    drawtile(Gfx, background_tile, 0, 0, xscrsize.x, xscrsize.y)
+    drawtile(Gfx, tilealpha(0, afun(2000-t)), 0, 0, xscrsize.x, xscrsize.y)
+    return axTransparent
+    end
+  fadeout_animation = nil
+  end
+
+function drawBackgroundAndMap()
+
+  if D.map and D.maparea and mousepos then
+    local p = mapon and pixeltoprocess(mousepos)
+    if p and not currentmodal then 
+      mouseposmap = V(math.floor(p.x), math.floor(p.y-D.map.top.y))
+      end
+  else
+    mouseposmap = nil
+    end
+  
+  if monstershown then
+    if imageinmonstermemory then
+      drawmonstermemory()
+      end
+    return axSemitransparent
+    end
+  if fadeout_animation then
+    return display_fadeout_animation()
+    end
+  if background_tile and imagebackgrounds then
+    drawtile(Gfx, background_tile, 0, 0, xscrsize.x, xscrsize.y)
+    return axTransparent
+    end
+
+  if not Global.is_game_running then
+    return axTransparent
+    end
+  -- water animation speed
+  local waterAnimDelay = 50
+  if ts == tilesets.ice then
+    waterAnimDelay = 100
+    end
+  if getticks() > watertick + waterAnimDelay then
+    waterframe = waterframe + 1
+    watertick = getticks()
+    end
+  return drawMap()
+  end
+
+function mousehighlight(x)
+  return tilemerge(tileshade(0x606000), gp2(x))
+  end
+
+function mousehighlight2(x)
+  return tilemerge(tileshade(0x909030), gp2(x))
+  end
+
+-- axInMap = {cellbackshade, cellblack, celltrans}
+
+axInMap = {tmap_backshade, tmap_black, tmap_trans}
+
+local ldrawAscii = drawAscii
+
+function use_special_hud()
+  return Global and Global.message_buffer_mode == messagebuffermodes.MBM_COMPRESSED_TOP_ENDLESS_BOTTOM
+  end
+
+function drawAscii(ax)
+
+  if textwindow and (mode == modeMini or mode == modeMed) then
+    -- restore the text window
+    scrcopy(
+      S, textwindow.window_x, textwindow.window_y, 
+      IMG, textwindow.window_x, textwindow.window_y,
+      textwindow.window_width, textwindow.window_height,
+      TMAP_COPY)
+    end
+    
+  -- highlight the mouse
+  processmouse(mousepos)
+  if mousearea and mousearea.x then
+    scrcopy(IMG, mousearea.x, mousearea.y, IMG, mousearea.x, mousearea.y, mousearea.x2, mousearea.y2, 
+      mousepressed and mousehighlight2 or mousehighlight)
+    end
+  
+  if ax and mapon then
+  
+    if use_special_hud() then
+      display_adom_messages()
+      display_adom_hud()
+      end
+
+    -- substitute our own drawscreen temporarily
+    local d = V.drawscreenx
+    function V.drawscreenx(Img, S, at, size, f)
+
+      local s = D.guifontsize
+      local x2 = at.x + 40 * (size.x - s.x)
+
+      local above = Global.lines_above_map
+      local below = Global.lines_below_map
+      
+      if not use_special_hud() then        
+        local y2 = at.y - screen.top.y + xscreen.bot.y - (below+1)*s.y
+        IMGL = renewscreen(IMGL, 80, above)
+        scrcopy(S, 0, 0, IMGL, 0, 0, 80, above, TMAP_COPY)
+        d(Img, IMGL, V(x2, at.y - screen.top.y), s, f)
+
+        IMGL = renewscreen(IMGL, 80, below)
+        scrcopy(S, 0, 25-below, IMGL, 0, 0, 80, below, TMAP_COPY)
+        d(Img, IMGL, V(x2, y2), s, f)
+        end
+      
+      if use_special_hud() and Global.asked_complicated_question then
+        local y2 = at.y - screen.top.y + xscreen.bot.y - below*s.y
+        IMGL = renewscreen(IMGL, 80, below)
+        scrcopy(S, 0, 25-below, IMGL, 0, 0, 80, below, TMAP_COPY)
+        d(Img, IMGL, V(0, y2), s, f)
+        
+        -- darken the whole line
+        -- print("rec is "..tostring(rectXY(80*s.x, y2, xscrsize.x, scrsize.y)))
+        end
+      end
+    ldrawAscii(ax)
+    V.drawscreenx = d
+
+    if use_special_hud() and Global.asked_complicated_question then
+      local y2 = xscreen.bot.y - Global.lines_below_map*D.guifontsize.y
+      V.drawtile(D.output, tileshade(0), rectXY(80*D.guifontsize.x, y2, xscrsize.x, xscrsize.y))
+      end
+    
+  else
+    ldrawAscii(ax)
+    end
+  
+  lowtoolbar_on = 
+    mapon and mouseactive and (ax or msgreserve > 0) and not use_special_hud()
+  
+  if lowtoolbar_on then lowtoolbar() end
+
+  -- draw the items
+  if inventorygraphics and (Global.is_inventory_visible or Global.is_item_list_visible) and mousearea and mousearea.key and not mousearea.bot then
+    local id = av(mousearea.key) - av("a")
+    local iim = adom_nelib_item_info_map(id)
+    if iim and iim.item then
+      local pic = idtoitempic(iim.item, iim.count)
+      drawtile(D.output, pic, mousepos.x + 15, mousepos.y + 15, 64, 48)
+      end
+    end
+  
+  -- draw the equipment
+  if inventorygraphics and Global.is_inventory_visible and not (mousearea and mousearea.key == " ") then
+    local size = 15 -- inventory_list_size()
+    isize = {x = math.min(xscreen.bot.x/size, 64), y=math.min(fontsize.y*3,48), size=size}
+    inventory_default = {26, 170, 35, 108, 314, 344, 474, 311, 631, 14, 31, 40, 76, 51, 283}
+    for id=0,size-1 do
+      local selected = mousearea and mousearea.key and (id == av(mousearea.key) - av("a"))
+      local tx = xscreen.bot.x/size*(id+0.5)-isize.x/2
+      local ty = xscreen.bot.y-isize.y-xscreen.bot.y/size*2
+      local iim = adom_nelib_item_info_map(id)
+      if selected then
+        drawtile(D.output, tileshade(0x606000), tx, ty, isize.x, isize.y)
+        end
+      if iim and iim.item then
+        local pic = idtoitempic(iim.item, 1)
+        drawtile(D.output, pic, tx, ty, isize.x, isize.y)
+      else
+        local pic = idtoitempic(inventory_default[id+1], 1)
+        pic = tilecol(pic, 0xFF000000, recDefault)
+        pic = tilecol(pic, 0xFF404040, recMult)
+        drawtile(D.output, pic, tx, ty, isize.x, isize.y)
+        end
+      end
+    end
+    
+  -- draw the healthbars
+  if showhealthbars and mapon and mode == modeASCII and not textwindow then
+    global_x = 0 global_y = -map.top.y
+    for x,y in irect(map) do
+      local M = cachesafe(x,y)
+      local h = (M.monster and M.monster.health) or (M.being_type == beingtypes.PC and not PCData.is_blind and PCData.health)
+      if h then 
+        drawtile(D.output, drawhealthbar({health = h}, 0),
+          screen.top.x + fontsize.x * x, screen.top.y + fontsize.y * y, 
+          fontsize.x, fontsize.y
+          )
+        end
+      end
+    end
+
+  end
+
+-- keep the font size when resizing the window
+--function resizewindow(ev)
+--  print("our resize!")
+--  local ev2 = {s = V(ev.sx, ev.sy), f = reqres.f}
+--  pickresolution(ev2)
+--  end
+--evhandlers[evResize] = resizewindow
+
+function rpick(name, list, chance)
+  if Ch[name] then return Ch[name] end
+  Ch[name] = list[math.random(1,#list)]
+  if chance and math.random(1, 100) > chance then
+    Ch[name] = 0
+    end
+  return Ch[name]
+  end
+
+function applist(name, list)
+  for k,v in pairs(list) do list[k] = name..v end
+  return list
+  end
+
+local lsetmaparea = setmaparea
+function setmaparea()
+  if (mode == modeMed or mode == modeMini or mode == modeASCII) or inmini then
+    return lsetmaparea()
+    end
+
+  if use_special_hud() then
+    D.rmaparea = get_adom_rmaparea()
+  else
+    D.rmaparea = rectXY(xscreen.top.x, xscreen.top.y + guifontsize.y * Global.lines_above_map, xscreen.bot.x, xscreen.bot.y - guifontsize.y * (Global.lines_below_map+1))
+    end
+
+  D.maparea = D.rmaparea
+  end
+
+function getscrollarea()
+  -- do not scroll while a modal window is displayed
+  if currentmodal then 
+    return nil 
+    end
+  if use_special_hud() then
+    if mousepos and (mousepos.x < 5 or mousepos.y < 5 or mousepos.x > xscrsize.x-5 or mousepos.y > xscrsize.y-5) then
+      return xscreen
+      end
+    return nil
+    end
+  return rectXY(xscreen.top.x, xscreen.top.y, xscreen.bot.x, xscreen.bot.y - guifontsize.y)
+  end
+
+function guiscalingavailable() return true end
+
+function mousesendsvector()
+  return Global and Global.is_cursor_active
+  end
+
+local lminileftclick = minileftclick
+function minileftclick(ev)
+  lminileftclick(ev)
+  if Global.is_cursor_active and inrect(ev, cmini) then
+    local v = minipixeltoprocess(ev)
+    if v then 
+      sendvector(V.floor(v) - playerpos - map.top) 
+      end
+    end
+  end
+
+local luisleep2 = uisleep2
+  
+function uisleep2()
+  if overlay_now then
+    if os.clock() > overlay_now.endtime then
+      overlay_last = overlay_now
+      overlay_now = nil
+      end
+    end
+  if not overlay_now then 
+    luisleep2()
+    -- print(addindent().."checking the loop")
+    game_event_loop()
+    -- print(addindent().."checking the loop successful")
+    end
+  while cancelui do
+    cancelui = false
+    luisleep2()
+    game_event_loop()
+    end
+  end
+
+-- disable combos in the targetting mode
+local lallowcombos = allowcombos
+
+function allowcombos(dirmap)
+  return not Global.is_cursor_active and lallowcombos(dirmap)
+  end
+
+function enablesafemode_adom()
+  showhealthbars = false
+  showstatus = false
+  showalignment = false
+  imageinmonstermemory = false
+  imagebackgrounds = false
+  inventorygraphics = false
+  end
+  
+if crashsafe then
+  enablesafemode_adom()
+  end
+
+function specialmousecursor()
+  if mousepos then
+    local mp = mousepos
+    -- move image to the "active point"
+    mp = mp - V(9,9)
+    if mousepressed then mp = mp - V(2,2) end
+
+    local gcm = Global.is_cursor_active and Global.cursor_mode
+    
+    if gcm == cursormodeids.CURSOR_LOOK then
+      drawnonscaled(tiles["nterface/cursor/cur_look"], mp)
+    elseif gcm == cursormodeids.CURSOR_ATTACK then
+      drawnonscaled(tiles["nterface/cursor/cur_ranged"], mp)
+    elseif gcm == cursormodeids.CURSOR_TELEPORT then
+      drawnonscaled(tiles["nterface/cursor/cur_magic"], mp)
+    elseif gcm == cursormodeids.CURSOR_COMMAND then
+      drawnonscaled(tiles["nterface/cursor/cur_chat"], mp)
+    else
+      drawnonscaled(tiles["nterface/cursor/cur_point"], mp)
+      end
+
+    return true
+    end
+  end
+
+function getlinep(y)
+  local t = getline(y)
+  while t ~= "" and t:sub(#t) == " " do t = t:sub(1, #t-1) end
+  if #t < 40 then t = t.."\n" end
+  return t
+  end
+
+function getlineall()
+  local s = ""
+  for y=0,24 do s = s .. getlinep(y) end
+  return s
+  end
+
+function rectat(rect, at)
+  return rect.top + rect.size * at
+  end
+
+function reversetable(t)
+  local u = {}
+  for k,v in pairs(t) do 
+    u[v] = k 
+    end
+  return u
+  end
+
+noteye_dirs_to_game_command = {}
+noteye_dirs_to_game_command[0] = gamecommandids.GC_E
+noteye_dirs_to_game_command[1] = gamecommandids.GC_NE
+noteye_dirs_to_game_command[2] = gamecommandids.GC_N
+noteye_dirs_to_game_command[3] = gamecommandids.GC_NW
+noteye_dirs_to_game_command[4] = gamecommandids.GC_W
+noteye_dirs_to_game_command[5] = gamecommandids.GC_SW
+noteye_dirs_to_game_command[6] = gamecommandids.GC_S
+noteye_dirs_to_game_command[7] = gamecommandids.GC_SE
+noteye_dirs_to_game_command[8] = gamecommandids.GC_WAIT
+
+function move_in_direction_TURNEDOFF(ev, x)
+  if evHasKeyDown(ev) then
+    post_game_command(noteye_dirs_to_game_command[x], -1, -1)
+    ev.type = evKeyIgnore
+    end
+  end
+
+config_sent = {}
+
+function send_config_to_ADOM()
+  for k,w in pairs(config_variables_ordered) do
+    local v = config_variables[w]
+    local val = tostring(v.getter(v))
+
+    -- do not send this
+    if v.name == "tppFacing" and config_sent[v.name] then
+      config_sent[v.name] = val
+      end
+    
+    if val ~= config_sent[v.name] then
+      config_sent[v.name] = val
+      print("SENDING "..v.name.." = "..val)
+      adom_nelib_config_variable(v.name, v.description, v.type, val)
+      end
+    end
+  end
+
+-- turn off the experimental features --
+
+noteye_config_variable("allowExperimental", false, "ADOM: allow NotEye's experimental features?")
+
+function disable_if_experimental()
+  return not allowExperimental
+  end
+  
+menuitems.graphmodes[modeFPP].hidden = disable_if_experimental
+menuitems.graphmodes[modeTPP].hidden = disable_if_experimental
+menuitems.graphmodes[modeISO].hidden = disable_if_experimental
+menuitems.techmenu.hidden = disable_if_experimental
+menuitems.joystick.hidden = disable_if_experimental
+menuitems.rotatenumpad.hidden = disable_if_experimental
+menuitems.letterinput.hidden = disable_if_experimental
+menuitems.netmenu.hidden = disable_if_experimental
+
+menuitems.rotatearrowkeys.displayAt =
+  writechoicef(function() return "interpret arrowkeys as numpad: \ve"..boolonoff(rotatearrowkeys) end)
+
+local kca = menuitems.keyconfig.action
+
+menuitems.keyconfig.action = function()
+  if allowExperimental then return kca() end
+  keymapidx = nil
+  menuexecute(keysmenu, dfthdr(
+    "Special keyboard configuration.\n\n"..
+    "Many modern keyboards lack the numpad, and thus lack an easy way to move\n"..
+    "diagonally in ADOM. NotEye can solve that by allowing diagonal\n"..
+    "movement with \veShift/Ctrl + Left/Right arrow\vp, or combinations of two arrow\n"..
+    "keys.\n\n"..
+    "Some features which are unfinished for ADOM have been hidden from this menu.\n"
+    ))
+  end
+
+function haveMiniMode(m)
+  return allowExperimental or (m ~= modeFPP and m ~= modeISO)
+  end
+
+addtomenu(adommenu, "x", writechoicef(
+  function() 
+    if allowExperimental then return "show the unfinished features in the NotEye menu (USE AT YOUR OWN RISK!)"
+    else return "unfinished features disabled"
+    end
+    end),
+  function()
+    pickbool("allowExperimental", not allowExperimental)
+    return true
+    end
+  )
+
+if not GermaniaOne then
+  local fontdir = gfxa.."fonts/"
+  GermaniaOne = newttfont(fontdir.."GermaniaOne-Regular.ttf")
+  AlegreyaRegular = newttfont(fontdir.."Alegreya-Regular.otf")
+  AlegreyaBold = newttfont(fontdir.."Alegreya-Bold.otf")
+  AlegreyaBoldItalic = newttfont(fontdir.."Alegreya-BoldItalic.otf")
+  AlegreyaBlack = newttfont(fontdir.."Alegreya-Black.otf")
+  AlegreyaBlackItalic = newttfont(fontdir.."Alegreya-BlackItalic.otf")
+  AlegreyaItalic = newttfont(fontdir.."Alegreya-Italic.otf")
+  end
+
+local lnoteye_logerror = noteye_logerror
+function noteye_logerror(where, msg)
+  local f = adom_nelib_log_error or (function() end)
+  f("Non-crash error at "..where)
+  f("MSG: "..msg)
+  lnoteye_logerror(where, msg)
+  end
+
+local lenablesafemode = enablesafemode
+function enablesafemode()
+  lenablesafemode()
+  enablesafemode_adom()  
+  end
+
+guiscalinghelp = 
+  "Scale of the font in the HUD. Affects the non-graphical HUD in ADOM only.\n"
+

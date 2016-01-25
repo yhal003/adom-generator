@@ -1,0 +1,394 @@
+-- sound system
+
+default_fade_out = 1000
+
+sounddir = commondir.."../sound/"
+musicdir = sounddir.."music/"
+sfxdir   = sounddir.."sfx/"
+
+
+SoundTable = {}
+
+-- the music entry that was played last
+last_played_music_entry = nil
+
+-- the music entry that is enqueued
+enqueued_music_entry = nil
+
+-- initialize the random number generator
+math.randomseed( os.time() )
+math.random(100)
+
+function handle_sound_cfg_line(line, type)
+  local entry = { type=type }
+  local fields = line:split(",")
+  for i,v in ipairs(fields) do
+    v = trim(v)
+    local values = v:split("=")
+    local key = trim(values[1])
+    local value = trim(values[2])
+
+    -- translate from text to internal ID number (TODO: add validation)
+    if ('event' == key) then
+      value = gameeventids[value]
+      if not value then
+        adom_nelib_log_warn("sound config: unknown event ID "..trim(values[2])..", ignoring it")
+        value = -1
+        end
+    elseif ('special-level' == key) then
+      value = speciallevelids[value]
+    elseif ('level-type' == key) then
+      value = leveltypeids[value]
+    elseif ('daytime' == key) then
+      value = daytimeids[value]
+    elseif ('weather-level' == key) then
+      value = weatherlevelids[value]
+    elseif ('pc-alignment' == key) then
+      value = alignmentids[value]
+    elseif ('item-weapon-type' == key) then
+      value = itemweapontypeids[value]
+    elseif ('item' == key) then
+      value = itemids[value]
+    elseif ('effect-type' == key) then
+      value = effecttypeids[value]
+    elseif ('damage-type' == key) then
+      value = damagetypeids[value]
+    elseif ('mental-power' == key) then
+      value = mentalpowerids[value]
+    elseif ('spell-number' == key) then
+      value = spellnumberids[value]
+    elseif ('terrain-type' == key) then
+      value = terraintypeids[value]
+    end
+
+    entry[key] = value
+  end
+
+  table.insert(SoundTable, entry)
+end
+
+function load_sound_configuration()
+--  print("loading sound configuration")
+  
+  if not file_exists(sounddir.."sound.cfg") then
+    logprint2("sound configuration file missing")
+    return
+    end
+
+  local type = "music"
+
+  local file = io.open(sounddir.."sound.cfg", "r")
+  for line in file:lines() do
+    local first = string.sub(line, 1, 1)
+    if first ~= '' and
+       first ~= ' ' and
+       first ~= '#' and
+       first ~= '[' then
+      handle_sound_cfg_line(line, type)
+    end
+
+    if line == "[music]" then
+      type = "music"
+    elseif line == "[sfx]" then
+      type = "sfx"
+    end
+  end
+  file:close()
+
+--print("SoundTable")
+--  for i,v in pairs(SoundTable) do
+--    print(i,v)
+--    for j,w in pairs(v) do
+--      print("  ",j,w)
+--    end
+--  end
+
+end
+
+function get_entry_value(entry, name, default_value)
+  local value = entry[name]
+  if value == nil then
+    value = default_value
+  end
+  return value
+end
+
+
+function value_matches(v1, v2)
+  return ((v1 == nil) or (v2 == nil) or (v1 and v2 and v1 == v2))
+end
+
+
+function search_for_matching_entry(sevent, sspecial_level, slevel_type, stime, sweather, salignment)
+
+  local game_event_id = sevent.game_event_id
+--print("game_event_id "..game_event_id)
+  local sitem_weapon_type = sevent.item_weapon_type
+--[[
+if (sweapon_type) then
+  print("item_weapon_type = "..sitem_weapon_type)
+  if (sevent.item) then
+    print("item "..sevent.item)
+    end
+  if (sevent.panning) then
+    print("panning "..sevent.panning)
+    end
+  if (sevent.hit) then
+    print("hit")
+  else
+    print("miss")
+    end
+  if (sevent.critical) then
+    print("critical")
+    end
+  end
+]]
+
+  local sitem = sevent.item
+--if (sitem) then
+--  print("item = "..sitem)
+--  end
+
+  local seffect_type = sevent.effect_type
+--if (seffect_type) then
+--  print("effect_type = "..seffect_type)
+--  end
+
+  local sdamage_type = sevent.damage_type
+--if (sdamage_type) then
+--  print("damage_type = "..sdamage_type)
+--  end
+
+  local smental_power = sevent.mental_power
+--if (smental_power) then
+--  print("mental_power = "..smental_power)
+--  end
+
+  local sspell_number = sevent.spell_number
+--if (sspell_number) then
+--  print("spell_number = "..sspell_number)
+--  end
+
+  local sterrain_type = sevent.terrain_type
+--if (sterrain_type) then
+--  print("terrain_type = "..sterrain_type)
+--  end
+
+  -- collects the entries that match the search condition
+  local entries = {}
+
+  for i,entry in pairs(SoundTable) do
+
+    local event = entry['event']
+    local special_level = entry['special-level']
+    local level_type = entry['level-type']
+    local time = entry['daytime']
+    local weather = entry['weather-level']
+    local alignment = entry['pc-alignment']
+    local item_weapon_type = entry['item-weapon-type']
+    local item = entry['item']
+    local effect_type = entry['effect-type']
+    local damage_type = entry['damage-type']
+    local mental_power = entry['mental-power']
+    local spell_number = entry['spell-number']
+    local terrain_type = entry['terrain-type']
+
+    if value_matches(game_event_id, event) and
+       value_matches(sspecial_level, special_level) and
+       value_matches(slevel_type, level_type) and
+       value_matches(stime, time) and
+       value_matches(sweather, weather) and
+       value_matches(salignment, alignment) and
+       value_matches(sitem_weapon_type, item_weapon_type) and
+       value_matches(sitem, item) and
+       value_matches(seffect_type, effect_type) and
+       value_matches(sdamage_type, damage_type) and
+       value_matches(smental_power, mental_power) and
+       value_matches(sspell_number, spell_number) and
+       value_matches(sterrain_type, terrain_type) then
+      table.insert(entries, entry)
+    end
+  end
+
+  if #entries == 0 then
+    return nil
+  elseif #entries == 1 then
+    -- check if we found the same track that is currently playing
+    -- if this is the case, we just return so that the track keeps on playing
+    local entry = entries[1]
+    if musicon() and last_played_music_entry ~= nil and
+       entry['file'] == last_played_music_entry['file'] then
+      return nil
+    end
+    return entry
+  else
+    -- check if we can find the currently playing track in the search result
+    -- if this is the case, we just return so that the track keeps on playing
+    if musicon() and last_played_music_entry ~= nil then
+      for i = 1, #entries do
+        local entry = entries[i]
+        if entry['file'] == last_played_music_entry['file'] then
+          return nil
+        end
+      end
+    end
+
+    -- this loop randomly selects a new track and makes sure
+    -- not to select the same track that was played before
+    local entry
+    repeat
+      local index = math.random(#entries)
+      entry = entries[index]
+    until ((last_played_music_entry == nil) or (entry['file'] ~= last_played_music_entry['file']))
+    return entry
+  end
+
+end
+
+
+Sounds = {}
+
+function play_music(entry)
+  local filename = entry['file']
+  local volume = get_entry_value(entry, 'volume', 100)
+  local loops = get_entry_value(entry, 'loops', 0)
+--print("playing music "..musicdir..filename)
+  loadmusic2(filename)
+  musichalt()
+--print("setting music volume to "..(volmusic * volume / 100))
+  musicvolume(volmusic * volume / 100)
+  if Musics[filename] then
+    last_played_music_entry = entry
+    playmusicloop(Musics[filename], loops)
+  end
+end
+
+function enqueue_music(entry)
+  if not musicon() then
+    play_music(entry)
+  else
+    local delay = get_entry_value(entry, 'fade-out', default_fade_out)
+    fadeoutmusic(delay)
+    local filename = entry['file']
+    loadmusic2(filename)
+    enqueued_music_entry = entry
+  end
+end
+
+function play_sfx(entry)
+  local filename = entry['file']
+  local volume = get_entry_value(entry, 'volume', 100)
+  local loops = get_entry_value(entry, 'loops', 0)
+--  print("playing sfx "..sfxdir..filename)
+  if not Sounds[filename] then
+    local s = loadsound(sfxdir..filename)
+    if s > 0 then Sounds[filename] = s end
+  end
+  if Sounds[filename] then
+    local min_panning = get_entry_value(entry, 'min-panning', 0)
+    local max_panning = get_entry_value(entry, 'max-panning', 0)
+--print("setting sfx volume to "..(volsound * volume / 100))
+    local channel = playsoundloop(Sounds[filename], volsound * volume / 100, loops)
+--print("channel "..channel)
+    if min_panning == 0 and max_panning == 0 then
+--print("reset channel")
+      mixunregisteralleffects(channel)
+    else
+      local rnd = min_panning + math.random(max_panning - min_panning)
+      local right = rnd * 254 / 100
+      local left = 254 - right
+--print("rnd "..rnd.." ("..min_panning.." - "..max_panning..")")
+--print("panning "..left.." "..right) 
+      mixsetpanning(channel, left, right)
+    end
+  end
+end
+
+load_sound_configuration()
+
+function samplesound()
+  triggergameeventid(gameeventids.GE_SAMPLE_SOUND)
+  end
+
+function handle_game_event_music(ev)
+
+  local special_level = Global.special_level
+  local level_type = nil
+  if Global.is_game_running then
+    local f = adom_nelib_draw_map(PCData.x, PCData.y)
+    level_type = f.level_type
+    end
+  local time = Global.time_of_day
+  local weather = Global.weather_level
+  local alignment = PCData.alignment
+
+  local entry = search_for_matching_entry(ev, special_level, level_type, time, weather, alignment)
+  if entry then
+    if (entry['type'] == 'music') then
+      enqueue_music(entry)
+    else
+      -- play sfx only if the PC can hear them
+      if appactive and (not PCData.is_deaf and (ev.is_heard_by_pc == nil or ev.is_heard_by_pc)) then
+        play_sfx(entry)
+        end
+    end
+  end
+end
+
+local last_sfx_ticks = 0
+
+function check_sfx()
+  if last_played_music_entry == nil then return end
+  if not appactive then return end
+  local sfx_allowed = get_entry_value(last_played_music_entry, 'sfx-allowed', 'no')
+  if sfx_allowed == 'yes' then
+--print("last_sfx_ticks "..last_sfx_ticks)
+    -- play a new sfx after 10 to 20 seconds
+    if last_sfx_ticks == 0 or (getticks() - last_sfx_ticks) > (10000 + math.random(10000)) then
+      local game_event = { game_event_id = gameeventids.GE_RANDOM_SFX }
+      handle_game_event_music(game_event)
+      last_sfx_ticks = getticks()
+    end
+  end
+end
+
+local last_music_ticks = 0
+
+lcheckmusic = checkmusic
+
+function checkmusic()
+
+  check_sfx()
+
+  freeoldmusic(3)
+
+  if appactive and not musicon() then
+    if volmusic == 0 then return end
+    if last_played_music_entry == nil then return end
+    if enqueued_music_entry then
+--print("starting enqueued music")
+      play_music(enqueued_music_entry)
+      enqueued_music_entry = nil
+    else
+      -- check for a new music (every second)
+      if last_music_ticks == 0 or (getticks() - last_music_ticks) > 1000 then
+--print("find next music")
+        local game_event = { game_event_id = gameeventids.GE_MAP_CHANGED }
+        handle_game_event_music(game_event)
+        last_music_ticks = getticks()
+        end
+    end
+  end
+end
+
+
+lstopmusic = stopmusic
+
+function stopmusic()
+  lstopmusic()
+
+  -- we enqueue the current music entry to be able to restart
+  -- it after the program has been activated again
+
+  enqueued_music_entry = last_played_music_entry
+end

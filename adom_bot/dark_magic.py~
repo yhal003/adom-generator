@@ -1,0 +1,60 @@
+import subprocess
+import termios
+import fcntl
+import pty
+import struct
+import os
+import signal
+import select
+import pyte
+import queue
+import threading
+
+class ADOM_Process:
+
+    def __init__(self, path, rows, cols):
+        self.master, self.slave = pty.openpty()
+        winsize = struct.pack("HHHH",rows,cols,0,0)
+        fcntl.ioctl(self.master, termios.TIOCSWINSZ, winsize)
+
+
+        self.process = subprocess.Popen([path], 
+                                        stdout = self.slave, 
+                                        stdin = self.slave, 
+                                        shell=True, 
+                                        preexec_fn=os.setsid)
+
+        self.poll = select.poll()
+        self.poll.register(self.master,select.POLLIN)
+        self.screen = pyte.Screen(cols, rows)
+        self.stream = pyte.ByteStream()
+        self.stream.attach(self.screen)
+        self.queue = queue.Queue()
+        self.polling_thread = threading.Thread(target = self._poll)
+        self.polling_thread.daemon = True
+        self.polling_thread.start()
+        
+
+    def _poll(self):
+        while (True):
+            ls = self.poll.poll(0)
+            for (fd,event) in ls:
+                data = os.read(self.master,1024000)
+                self.stream.feed(data)
+                try:
+                    self.queue.put(1)
+                except RuntimeError:
+                    # should not happen. queue.Queue() appears to be buggy
+                    pass
+
+
+    def release_on_change(self):
+        self.queue.get()
+
+    def send(self, str):
+        os.write(self.master, bytes(str,"ASCII"))
+
+        
+
+    def kill(self):
+        os.killpg(self.process.pid, signal.SIGTERM)

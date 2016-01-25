@@ -1,0 +1,718 @@
+-- context help
+
+function show_context_menu(positionContext, x, y)
+    local commands = positionContext.commands
+    if (commands == nil) then return end
+
+    logprint2("# of available commands: "..commands.available_commands)
+    if (commands.available_commands == 0) then return end
+
+--    for i = 1, commands.available_commands do
+--      local command = commands[i]
+--      print("hint '"..command.hint_text.."', available = "..(command.available and "y" or "n")..", important = "..(command.important and "y" or "n"))
+--      end
+
+    local contextInfo = positionContext.info
+    logprint2("context "..contextInfo.tile.tile)
+    
+    local contextmenu = newmodalwindow("context")
+    local pos = V.copy(mousepos)
+
+    local ny = 0
+    local nx = 0
+    local tmp = {}
+    
+    for i = 1, commands.available_commands do
+      local command = commands[i]
+      if command.available and command.important then
+        tmp[ny] = command
+        ny = ny + 1
+        local hint_text = command.hint_text.." ("..command.key_sequence..")"
+        nx = math.max(nx, #hint_text)
+        end
+      end
+    
+    if ny == 0 then 
+      logprint2("NO COMMANDS AVAILABLE")
+      contextmenu = nil
+      return true 
+      end
+    
+    local fsize = mode == modeASCII and fontsize or guifontsize
+    local wsize = fsize * V(nx,ny)
+    
+    pos.y = pos.y - wsize.y
+    if pos.y < fsize.y then pos.y = fsize.y end
+    pos.x = math.min(xscreen.bot.x - wsize.x - fsize.x, pos.x)
+    
+    local chosen = nil
+      
+    function contextmenu.show(hidden)
+      ContextMenu = renewscreen(ContextMenu, nx, ny)
+      scrfill(ContextMenu, 0, 0, nx, ny, 0)
+
+      for l=0, ny-1 do
+        local hint_text = tmp[l].hint_text.." ("..tmp[l].key_sequence..")"
+        scrwrite(ContextMenu, 0, l, hint_text, Font, 0)
+        end
+      
+      if chosen then
+        scrcopy(ContextMenu, 0, chosen, ContextMenu, 0, chosen, nx, 1, function(x) 
+          return tilemerge(tilefill(0), tilerecolor(x, vgaget(15)))
+          end)
+        end        
+      
+      parchment_background(rectTS(pos - fsize/2, wsize + fsize))
+      -- V.drawtile(D.output, tileshade(0xFFFFFF), rectTS(pos, wsize))
+      V.drawscreen(D.output, ContextMenu, pos, fsize)
+      end
+
+    function contextmenu.handlemouse(ev)
+      if ev.type == evMouseMotion then 
+        chosen = math.floor((mousepos.y - pos.y) / fsize.y)
+        chosen = (chosen >= 0) and (chosen < ny) and chosen
+        end
+      if ev.type == evMouseDown and ev.button ~= 1 then 
+        contextmenu.close()
+        end
+      if ev.type == evMouseUp and ev.button ~= 3 then 
+        if chosen then
+          logprint2("CHOSEN: "..tmp[chosen].hint_text)
+          local command = tmp[chosen].command
+          logprint2("command "..command)
+          post_game_command(command, x, y)
+          end
+        contextmenu.close()
+        end
+      return true
+      end
+    
+    function contextmenu.handlekey(ev)
+      contextmenu.close()
+      return false
+      end
+      
+end
+
+function adommapclicked(x, y, ev)
+
+  local button = ev.button
+  local clicks = ev.clicks
+--print("adom map clicked x = "..x..", y = "..y..", button = "..button..", clicks = "..clicks)
+
+--  if button == 1 and clicks == 2 then
+--print("do_left_double_click")
+--    do_left_double_click_on(x, y)
+--    return true
+
+  if button == 1 then
+    local positionContext = adom_nelib_left_clicked_on_info_map(x, y)
+    for k,v in pairs(positionContext) do logprint2(k.." = "..tostring(v)) end
+    if positionContext.info ~= nil then
+      show_context_menu(positionContext, x, y)
+    else
+      if Global.is_cursor_active then
+        return false
+        end
+      local map = adom_nelib_draw_map(x, y)        
+      if map.monster then
+        post_game_command(gamecommandids.GC_WM_MONSTER, x, y)
+      else
+        post_game_command(gamecommandids.GC_WM_POSITION, x, y)
+        end
+      end
+    return true
+
+  elseif button == 3 then
+    local positionContext = adom_nelib_right_clicked_on_info_map(x, y)
+    if positionContext then
+      show_context_menu(positionContext, x, y)
+      end
+    return true
+
+--  else if button == 1 then
+--    local contextInfo = adom_nelib_context_info_map(x, y)
+--    if contextInfo and contextInfo.tile and contextinfo.tile.tile then
+--      print("context "..contextInfo.tile.tile)
+--      end
+--    end
+    end
+  return false
+  end
+
+function buttoncaption(button, font, size, text, key, index)
+  local where =button.captionctr
+  if button.down then where = where + V(-2, 2) end
+  if key then
+    text = (index and text:sub(1,index) or "").. "\v#FFD500" .. key .. "\vp" .. text:sub((index or 0)+2)
+    end
+  rendertext(font, size, text, 0xFFFFFFFF, Gfx, where, V(-.5,-.5))
+  end
+
+adom_messages = {}
+
+function clear_adom_messages()
+adom_nelib_log_info("mb: clear_adom_messages")
+  adom_messages = {}
+  end
+
+function delete_last_message()
+adom_nelib_log_info("mb: delete_last_message")
+  remove_message_images(adom_messages)
+  adom_messages = adom_messages.prev or {}
+  end
+
+function add_adom_message(text, updated, question)
+  adom_nelib_log_info("mb: add_adom_message text = '"..(text or "n/a").."', updated = "..(tostring(updated) or "n/a")..", question = "..(tostring(question) or "n/a"))
+  
+  local prefix
+  
+  if question and adom_messages.question and not updated then
+    updated = true
+    prefix = adom_messages.text.." "
+    text = prefix..text
+    end
+  
+  if updated then 
+    for k,v in pairs(adom_messages) do print(k.."="..tostring(v)) end
+    if adom_messages.prefix then 
+      prefix = adom_messages.prefix
+      text = prefix .. text 
+      end
+    remove_message_images(adom_messages)
+    adom_messages = adom_messages.prev
+    end
+  adom_messages = {time = getticks(), prefix = prefix, text = text, prev = adom_messages, question = question}
+  end
+
+MESSAGE_DISPLAY_TIME = 1000
+MESSAGE_DISPLAY_FULL = 1000
+MESSAGE_FADE_AFTER = 1500
+MESSAGE_COLOR = 0xFFD700
+
+MESSAGE_WIDTH = 200
+MESSAGE_HEIGHT = 500
+
+function display_adom_messages(text)
+  calculate_message_width()
+  local y = xscreen.bot.y - 4
+
+  if Global.asked_complicated_question then 
+    y = y - Global.lines_below_map * D.guifontsize.y
+    end
+
+  local k = adom_messages
+  local first = true
+  while k and k.text do
+    if last_message_event and last_message_event > k.time + MESSAGE_FADE_AFTER and not k.fade and
+      not (first and k.question) then 
+      k.fade = getticks()
+      end
+    if not k.t then
+      build_adom_message(k)
+      end
+    if k.fade then
+      local t = getticks() - k.fade
+      if t > MESSAGE_DISPLAY_TIME then 
+        collect_garbage(k)
+        return 
+        end
+      col = math.floor(15 * ((MESSAGE_DISPLAY_TIME-t)/MESSAGE_DISPLAY_FULL)) * 0x11000000
+      if col ~= k.col then
+        if k.rt then 
+          if k.rt ~= k.t then delete(k.rt) end
+          k.rt = nil
+          end
+        k.col = col
+        k.rt = tilecol(k.t, col + 0xFFFFFF, recMult)
+        end
+      end
+    y = y - k.size.y
+    if y < 0 then return end
+    local k2 = k
+    if k.rt then k2 = {t = k.rt, size = k.size } end
+    -- print("drawing (t="..k.t..", rt="..tostring(k.rt)..")")
+    drawnonscaled(k2, V(8, y), 0)
+    if first and k.question and k==k2 then 
+      V.drawtile(Gfx, tileshade(blinkcolor()), rectTS(V(10 + k.realsize.x, y+6), V(18,18)))
+      local promptAt = V(xscrsize.x/2 -8 - k.realsize.x / 2, 48)
+      V.drawtile(Gfx, tilealpha(0, 0x404040), rectTS(promptAt - V(8,8), k.realsize + V(16,16)))
+      drawnonscaled(k, promptAt, 0)
+      end
+    first = false
+    -- to do: add transparency
+    k = k.prev
+    end
+  end
+
+function remove_message_images(k)
+adom_nelib_log_info("mb: remove_message_images")
+  if k.pic then
+  adom_nelib_log_info("mb: Deleting pic for: "..(k.text or nil))
+    delete(k.pic)
+    k.pic = nil
+    end
+  if k.t then
+    delete(k.t)
+    k.t = nil
+    end
+  if k.rt then
+    delete(k.rt)
+    k.rt = nil
+    end
+  end
+  
+function collect_garbage(k)
+adom_nelib_log_info("mb: collect_garbage for "..(k.text or "[no text]"))
+  if k.prev then
+    collect_garbage(k.prev)
+    k.prev = {}
+    end
+  remove_message_images(k)
+  k.text = nil
+  end
+
+local Message_Buffer
+
+function calculate_message_width()
+  local LAST = MESSAGE_WIDTH
+  MESSAGE_WIDTH = xscreen.size.x - 8
+  if cmini and cmini.top.x >= 8 and not minimapoff() then
+    MESSAGE_WIDTH = cmini.top.x - 8
+    end
+  if MESSAGE_WIDTH < 80 then MESSAGE_WIDTH = 80 end
+  if LAST ~= MESSAGE_WIDTH then
+    if Message_Buffer then
+      delete(Message_Buffer)
+      end
+    Message_Buffer = nil
+    local k = adom_messages
+    while k do
+      remove_message_images(k)
+      k = k.prev
+      end
+    end
+  end
+
+function build_adom_message(k)
+adom_nelib_log_info("mb: build_adom_message "..k.text)
+  if not Message_Buffer then
+    Message_Buffer = newimage(MESSAGE_WIDTH, MESSAGE_HEIGHT, 0)
+    end
+  
+  local txt = k.text
+  
+  while txt:find("\003") do
+    local i,j = txt:find("\003")
+    local co = txt:byte(i+1) - 192
+    local ch = string.sub("0123456789abcef", co+1, co+1) or "p"
+    if co == 7 then ch = "#FFD500" end
+    txt = txt:sub(1,i-1).."\v"..ch..txt:sub(j+2)
+    end
+
+  print("building ADOM message: "..tostring(k))
+  
+    
+  -- clear the buffer
+  fillimage(Message_Buffer, 0, 0, MESSAGE_WIDTH, MESSAGE_HEIGHT, 0)
+  -- render the message
+  local tsize = renderlongtext(AlegreyaRegular, 18, txt, 0xFF000000 + MESSAGE_COLOR, Message_Buffer, 
+    rectXY(0, 0, MESSAGE_WIDTH, MESSAGE_HEIGHT), 0, effectBorder)
+--print("ysize = "..ys.." ("..k.text..")")
+  k.size = V(MESSAGE_WIDTH, tsize.y)
+  k.realsize = tsize
+  k.pic = newimage(MESSAGE_WIDTH, tsize.y, 0)
+  imgcopy(Message_Buffer, 0, 0, k.pic, 0, 0, MESSAGE_WIDTH, tsize.y)
+
+  k.t = addtile(k.pic, 0, 0, MESSAGE_WIDTH, tsize.y, transAlpha)
+  end
+
+local lgetminipos = getminipos
+
+function getminipos(size)
+  if use_special_hud() then
+    if Global.asked_complicated_question and size.x + guifontsize.x*80 > xscrsize.x then
+      return xscreen.bot - size - V(0, guifontsize.y*Global.lines_below_map)
+      end
+    return xscreen.bot - size
+  elseif (mode == modeMed or mode == modeMini or mode == modeASCII) and msgreserve * fontsize.y >= size.y-8 then 
+    return D.rscreen.bot - size - V(0, fontsize.y)
+    end
+  end
+
+function get_adom_rmaparea()
+  return rectXY(0, 30, xscrsize.x - 50, xscrsize.y - 100)
+  end
+
+HudRenderer15 = create_prerenderer(
+  {font = AlegreyaRegular, size = 15, flags = 0, color = 0xFFFFBC4D
+  })
+
+HudRenderer18 = create_prerenderer(
+  {font = AlegreyaRegular, size = 18, flags = 0, color = 0xFFFFBC4D
+  })
+
+tactic_colors = {0xFF8000, 0xFFC000, 0xFFFF00, 0xC0FF00, 0x80FF00, 0x00FF00}
+tactic_colors[0] = 0xFF0000
+
+function display_adom_hud()
+
+  local overview = adom_nelib_get_tome_of_knowledge_pc_overview()
+
+  adomhud = {}
+  huddir = "nterface/hud/"
+  mouseL = "\vi"..(tiles[huddir.."mouse_l"].pic)..";"
+  mouseR = "\vi"..(tiles[huddir.."mouse_r"].pic)..";"
+  
+  local lastx = 8
+  local y = 8
+  
+  local react_to_mouse = mousepos and Global.asked_for_command and not currentmodal
+
+-- warning icons --
+
+  local warnx = 8
+  local warny = 40
+  
+  function add_hud_warning(image, hint, actionl, actionr)
+
+    local coord = V(warnx, warny)
+    local t = tiles[huddir..image]
+    local r = rectTS(coord, t.size)
+    
+    if react_to_mouse and inrect(mousepos, r) then
+      V.drawtile(D.output, tileshade(0xFFD500), r)
+      rendertext(AlegreyaRegular, 15, hint, 0xFFFFFFFF, Gfx, V(r.bot.x+10, r.ctr.y), V(0, -.5), effectOnBlack)
+    else    
+      V.drawtile(D.output, tileshade(0), r)
+      end
+
+    r.action = function (v,ev)
+      if ev.type == evMouseUp and ev.button == 1 and actionl then
+        post_game_command(actionl, -1, -1)
+        end
+      if ev.type == evMouseUp and ev.button == 3 and actionr then
+        post_game_command(actionr, -1, -1)
+        end
+      end    
+    
+    drawnonscaled(t, coord, V(0,0))
+      
+    warny = warny + t.size.y + 8
+    return r
+    end
+
+  if PCData.satiation_level == satiationlevelids.H_HUNGRY then 
+    adomhud.hungry = add_hud_warning("warning_hungry", "You are hungry!\n"..mouseL.." eat", gamecommandids.GC_EAT)
+  elseif PCData.satiation_level == satiationlevelids.H_VERY_HUNGRY then 
+    adomhud.hungry = add_hud_warning("warning_hungry!", "You are very hungry!\n"..mouseL.." eat", gamecommandids.GC_EAT)
+  elseif PCData.satiation_level == satiationlevelids.H_STARVING then 
+    adomhud.hungry = add_hud_warning("warning_starving", "You are starving!\n"..mouseL.." eat", gamecommandids.GC_EAT)
+    end
+
+  function show_command(action, game_command_id, second_game_command_id)
+    if second_game_command_id then
+      return " "..action.." ("..adom_nelib_get_game_command_info(game_command_id).key_sequence.." - "..
+         adom_nelib_get_game_command_info(second_game_command_id).key_sequence..")"
+      end
+    return " "..action.." ("..adom_nelib_get_game_command_info(game_command_id).key_sequence..")"
+    end
+
+-- top hud boxes --  
+
+  function hudbox(name, render, text, align, hint, extra)
+    local sx = tiles[huddir..name].size.x
+    if lastx + sx > xscrsize.x-30 then return end
+    local b = drawnonscaled(tiles[huddir..name], V(lastx,y))
+    if react_to_mouse and inrect(mousepos, b) then
+      drawnonscaled(tiles[huddir..name.."_glow"], V(lastx,y))
+      rendertext(AlegreyaRegular, 15, hint, 0xFFFFFFFF, Gfx, V(lastx+4, 50+y), V(0, 0), 
+        {on = 0xFF000000, cropto = rectXY(0,0, xscrsize.x-64, xscrsize.y)})
+      end
+    if extra and extra.draw then extra.draw(b) end
+    if render and text then
+      local lx = 8 - align * (sx-13)
+      drawnonscaled(render:apply(text), V(lastx+lx, y+15-render.size), V(align, 0), extra and extra.rec)
+      end
+    if extra and extra.icon then
+      drawnonscaled(tiles[huddir..extra.icon], V(lastx,5))
+      end
+    if extra and extra.bar then
+--    local trect = rectTS(b.top + V(3,22), V((b.size.x-6)*extra.bar, 3))
+      local trect = rectTS(b.top + V(4,23), V((b.size.x-8)*extra.bar, 1))
+      V.drawtile(D.output, tilefill(extra.barcolor), trect)
+      end
+    lastx = b.bot.x
+    b.action = extra and extra.action
+    return b
+    end
+  
+  local H15 = HudRenderer15
+  local H18 = HudRenderer18
+
+  tactic_name = PCData.current_tactic_name or "T"..PCData.current_tactic
+
+  adomhud.name = hudbox(
+    "name", H15, PCData.name, -.5, 
+    "Name\n"..
+    mouseL..show_command("character information", gamecommandids.GC_VIEW_PC_DATA).."\n"..
+    mouseR..show_command("character background", gamecommandids.GC_BACKGROUND),
+    { action = function(v,ev)
+        if ev.type == evMouseUp then
+          post_game_command(ev.button ==1 and gamecommandids.GC_VIEW_PC_DATA or gamecommandids.GC_BACKGROUND, -1, -1)
+          end
+      end, icon = "ico_name" }
+    )
+  if false then adomhud.class = hudbox(
+    "class", H15, PCData.class_name, -.5,
+    "Character class\n"..mouseL.." use class ability\n"..mouseR.." use skill",
+    { action = function(v,ev)
+        if ev.type == evMouseUp then
+          post_game_command(ev.button==1 and gamecommandids.GC_USE_CLASS_POWER or gamecommandids.GC_APPLY_SKILL, -1, -1)
+          end
+      end }
+    ) end
+  adomhud.level = hudbox(
+    "level", H18, PCData.level, -1,
+    "PC experience level\n"..
+    "Character class: "..PCData.class_name.."\n"..
+    "Progress to next level: "..PCData.xp_progress_percentage.."%".."\n"..
+    mouseL..show_command("display experience", gamecommandids.GC_EXPERIENCE).."\n"..
+    mouseR..show_command("display weapon skills", gamecommandids.GC_DISPLAY_WEAPON_SKILLS),
+    {bar = PCData.xp_progress_percentage/100, barcolor = 0xFFFFFF,
+      action = function(v,ev)
+        if ev.type == evMouseUp then
+          post_game_command(ev.button==1 and gamecommandids.GC_EXPERIENCE or gamecommandids.GC_DISPLAY_WEAPON_SKILLS, -1, -1)
+          end
+        end
+    }
+    )
+  adomhud.hp = hudbox(
+    "hp_mp", H18, PCData.hp.."/"..PCData.max_hp, -.5, 
+    "Hit points (HP)\n"..
+    mouseL..show_command("drink", gamecommandids.GC_DRINK).."\n"..
+    mouseR..show_command("read", gamecommandids.GC_READ),
+    { bar = PCData.hp/PCData.max_hp, barcolor = healthbarcolor(PCData.health),
+      action = function(v,ev)
+        if ev.type == evMouseUp then
+          post_game_command(ev.button==1 and gamecommandids.GC_DRINK or gamecommandids.GC_READ, -1, -1)
+          end
+        end
+      }
+    )
+  local mindcrafter = PCData.class == pcclassids.MINDCRAFTER
+  adomhud.pp = hudbox(
+    "hp_mp", H18, PCData.pp.."/"..PCData.max_pp, -.5, 
+    "Power points (PP)\n"..
+    mouseL..(mindcrafter and show_command("mindcraft", gamecommandids.GC_INVOKE_MINDCRAFT).."\n"..
+    mouseR or "")..show_command("cast spell", gamecommandids.GC_CAST),
+    { bar = PCData.max_pp and PCData.pp/PCData.max_pp, barcolor = powerpointscolor(PCData.pp, PCData.max_pp),
+      action = function(v,ev)
+        if ev.type == evMouseUp then
+          post_game_command((ev.button==3 or not mindcrafter) and gamecommandids.GC_CAST or gamecommandids.GC_INVOKE_MINDCRAFT, -1, -1)
+          end
+        end
+      }
+    )
+  adomhud.dv = hudbox(
+    "dvpv", H18, PCData.dv, -1,
+    "Defense Value (DV)\nTactic: "..tactic_name.."\n"..
+    mouseL..mouseR..show_command("change tactic", gamecommandids.GC_SET_TACTICS_0, gamecommandids.GC_SET_TACTICS_6),
+    { rec = function(t) 
+     return tilerecolor(t, tactic_colors[PCData.current_tactic or 3]) end,
+     action = function(v,ev)
+       if ev.type == evMouseUp then
+         changeTactics(ev.button == 1 and -1 or ev.button == 3 and 1 or 0)
+         end
+        
+       if ev.type == evMouseWheel then
+         changeTactics(ev.dy)
+         end
+       end,
+      icon = "ico_dv"
+      }
+    )
+  adomhud.pv = hudbox(
+    "dvpv", H18, PCData.pv, -1,
+    "Protection Value (PV)\n"..
+    mouseL..show_command("equipment", gamecommandids.GC_INVENTORY),
+    { action = function(v,ev)
+      if ev.type == evMouseUp then
+        post_game_command(gamecommandids.GC_INVENTORY, -1, -1)
+        end end,
+      icon = "ico_pv"
+      }
+    )
+  adomhud.dl = hudbox(
+    "dungeon", H18, Global.dungeon_level_shortcut, -1,
+    "Dungeon level\n"..Global.dungeon_level_description.."\n"..
+    mouseL..show_command("go down", gamecommandids.GC_DESCEND).."\n"..
+    mouseR..show_command("go up", gamecommandids.GC_ASCEND).."\n"..
+    mouseL.."[2x] "..show_command("walk to down stairway", gamecommandids.GC_WM_DESCEND).."\n"..
+    mouseR.."[2x] "..show_command("walk to up stairway", gamecommandids.GC_WM_ASCEND),
+    { action = function(v,ev)
+      if ev.type == evMouseUp then
+        post_game_command(
+          (ev.clicks>1) and (ev.button == 1 and gamecommandids.GC_WM_DESCEND or gamecommandids.GC_WM_ASCEND)
+          or (ev.button == 1 and gamecommandids.GC_DESCEND or gamecommandids.GC_ASCEND), -1, -1)
+        end end,
+      icon = "ico_dungeon"
+      }
+    )
+  adomhud.alignment = hudbox(
+    "dvpv", H18, PCData.alignment_shortcut or "??", -1,
+    "Alignment\n"..
+    PCData.alignment_description.."\n"..
+    mouseL..show_command("pray to".." "..(overview.misc_data.deity or "(unknown)"), gamecommandids.GC_PRAY).."\n"..
+    mouseR..show_command("sacrifice", gamecommandids.GC_OFFER),
+    { action = function(v,ev)
+      if ev.type == evMouseUp then
+        post_game_command(ev.button == 1 and gamecommandids.GC_PRAY or gamecommandids.GC_OFFER, -1, -1)
+        end end,
+      icon = "ico_alignment"
+      }
+    )
+
+  local ds = PCData.dynamic_display_hint
+  local dt = PCData.dynamic_display_type
+  local ico
+  if dt == 1 then ico = "ico_speed" end
+  if dt == 2 then ico = "ico_energy" end
+  if dt == 3 then ico = "ico_gold" end
+  if dt == 4 then ico = "ico_ammo" end
+  if dt == 0 then ico = "ico_turns" end
+  
+  adomhud.dynamic = hudbox(
+    "dynamic", H18, PCData.dynamic_display_value or "?", -1,
+    "Dynamic Display\n"..ds.."\n"..
+    mouseL..show_command("to switch", gamecommandids.GC_SWITCH_DISPLAY),
+    { action = function(v,ev)
+      if ev.type == evMouseUp then
+        post_game_command(gamecommandids.GC_SWITCH_DISPLAY, -1, -1)
+        end end,
+      icon = ico
+      }
+    )
+  
+  if dt == 4 then
+    local ms = bodypartids.MISSILES
+    local at = PCData.body_part[bodypartids.MISSILES+1].item
+    if at then
+      local tn = "items/52/item"..at
+      if gfx_exists(tn) then
+        local t = tiles[tn]
+        drawnonscaled(t, adomhud.dynamic.top + V(16,-8), 0)
+        end
+      end
+    end
+  
+  local m = overview.attribute_data.max_attribute
+  local function abbr(x)
+    x = x:sub(1,2)
+    if x == "De" then return "Dx"
+    else return x end
+    end
+  for k = 1,m do 
+    local t = overview.attribute_data[k]
+    local b = hudbox(
+      "dvpv", H18, t.attribute_current_value, -1,
+      "Attribute: "..t.attribute_name.."\n"..
+      "Raw: "..t.attribute_raw_value.."/"..t.attribute_raw_max_value.."\n"..
+      "Magical bonus: "..formatsigned(t.attribute_magical_bonus).."\n"..
+      "Boost: "..formatsigned(t.attribute_boosts)
+      )
+    if b then
+      drawnonscaled(H18:apply(abbr(t.attribute_name)..":"), b.top+V(4,-2), V(0,0))
+      end
+    end
+
+  drawnonscaled(tiles[huddir.."shadow_cap"], V(lastx,y))
+
+  local t = tiles[huddir.."action"]
+
+  adomhud.numcommands = 0
+  function add_hud_command(text, hint, actionl, actionr, image)
+    local id = adomhud.numcommands + 1
+    adomhud.numcommands = id
+
+    local coord = V(xscreen.bot.x, 39*id+4)
+    local realr = rectTS(coord - V(36,36), V(30, 30))
+    if react_to_mouse and mousepressed and inrect(mousepos, realr) then 
+      coord = coord + V(2,2) 
+      end
+    local r = drawnonscaled(tiles[huddir.."action"], coord, V(-1, -1))
+    adomhud[id] = realr
+    
+    adomhud[id].action = function (v,ev)
+      if ev.type == evMouseUp and ev.button == 1 and actionl then
+        post_game_command(actionl, -1, -1)
+        end
+      if ev.type == evMouseUp and ev.button == 3 and actionr then
+        post_game_command(actionr, -1, -1)
+        end
+      end    
+    
+    if image then
+      drawnonscaled(tiles[huddir..image], coord, V(-1,-1))
+      end
+      
+    if text then 
+      rendertext(AlegreyaRegular, 12, text, 0xFFFFBC4D, Gfx, coord - V(25,21), V(-.5, -.5))
+      end
+
+    if react_to_mouse and inrect(mousepos, realr) then
+      drawnonscaled(tiles[huddir.."action_glow"], coord, V(-1, -1))
+
+      rendertext(AlegreyaRegular, 15, hint, 0xFFFFFFFF, Gfx, realr.ctr - V(30,0), V(-1, -.5), effectOnBlack)
+      end
+    end
+  
+  add_hud_command(nil, mouseL..show_command("save game", gamecommandids.GC_SAVE), gamecommandids.GC_SAVE, nil, "save")
+  add_hud_command(nil, mouseL..show_command("help", gamecommandids.GC_ONLINE_HELP), gamecommandids.GC_ONLINE_HELP, nil, "help")
+  -- add_hud_command(nil, "Character information", gamecommandids.GC_VIEW_PC_DATA, nil, "pc")
+  add_hud_command(nil, mouseL..show_command("search", gamecommandids.GC_SEARCH).."\n"..mouseR..show_command("look", gamecommandids.GC_LOOK), gamecommandids.GC_SEARCH, gamecommandids.GC_LOOK, "look")
+--add_hud_command(nil, mouseL.." sacrifice "..mouseR.." pray", gamecommandids.GC_OFFER, gamecommandids.GC_PRAY, "pray")
+  add_hud_command(nil, mouseL..show_command("wait", gamecommandids.GC_WAIT), gamecommandids.GC_WAIT, nil, "wait")
+  --if PCData.can_use_skill then
+  --  add_hud_command(nil, "use a skill", gamecommandids.GC_APPLY_SKILL, nil, "skill")
+  --  end
+--if PCData.can_cast_spell then
+--  add_hud_command(nil, "cast a spell", gamecommandids.GC_CAST, nil, "cast")
+--  end
+  if PCData.can_shoot then
+    add_hud_command(nil, mouseL..show_command("throw or shoot", gamecommandids.GC_SHOOT), gamecommandids.GC_SHOOT, nil, "shoot")
+    end
+  if PCData.can_use_item then
+    add_hud_command(nil, mouseL..show_command("use an item", gamecommandids.GC_STUFF), gamecommandids.GC_STUFF, nil, "use")
+    end
+--if PCData.can_use_mindcraft then
+--  add_hud_command(nil, "invoke mindcraft", gamecommandids.GC_INVOKE_MINDCRAFT, nil, "mindcraft")
+--  end
+  --if PCData.can_use_class_power then
+  --  add_hud_command("CLASS", "use a class power", gamecommandids.GC_USE_CLASS_POWER)
+  --  end
+
+  -- V.drawtile(D.output, tileshade(0x800000), rmaparea)
+  
+  -- sophisticated question display
+  end
+
+function react_to_adom_hud(ev)
+  if Global.asked_for_command and mousepos and adomhud and mapon and not currentmodal then
+    for k,v in pairs(adomhud) do
+      if V.isrect(v) and v.action and inrect(mousepos, v) then
+        v:action(ev)
+        return true
+        end
+      end
+    end
+  end
+
+function changeTactics(dy)
+  local t = PCData.current_tactic or 3
+  t = t + dy
+  t = t % 7
+  t = t + 7
+  t = t % 7
+  post_game_command(gamecommandids.GC_SET_TACTICS_0+t, -1, -1)
+  end

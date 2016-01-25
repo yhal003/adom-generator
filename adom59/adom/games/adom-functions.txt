@@ -1,0 +1,575 @@
+Description of functions provided by ADOM to be used by NotEye 
+==============================================================
+
+See adom-tables.noe for the list of IDs that can be returned.
+
+
+adom_nelib_global_map()
+-----------------------
+
+cursor_x             : integer, the cursor X coordinate
+cursor_y             : integer, the cursor Y coordinate
+is_cursor_active     : boolean, true if the user can select a coordinate with a cursor
+is_map_visible       : boolean, true if the map is shown
+is_game_running      : boolean, true if a game is running
+is_deluxe            : boolean, true if it is the deluxe version
+special_level        : integer, the special level ID (see speciallevelids)
+dungeon_level_shortcut : string, the dungeon level shortcut (e.g. "Vlge")
+dungeon_level_description : string, the longer dungeon level description
+weather_level        : integer, the current weather conditions (see weatherlevelids)
+time_of_day          : integer, the current daytime (see daytimeids)
+is_silvernight       : boolean, true if today is silvernight
+is_darknight         : boolean, true if today is darknight
+is_inventory_visible : boolean, true if the inventory is visible
+inventory_list_size  : integer, the size of the inventory list
+is_item_list_visible : boolean, true if the item list is visible
+item_list_size       : integer, the size of the item list
+is_portal_free       : boolean, true if the ancient stone portal is open
+is_flame_wall_gone   : boolean, true if the stairway flame wall is gone
+is_ice_palace_visible : boolean, true if the ice palace is visible
+message_buffer_mode   : one of the values from messagebuffermodes
+lines_above_map       : the number of content lines above the map
+lines_below_map	      : the number of content lines below the map
+asked_for_direction   : boolean, indicates that currently a direction needs
+		      	to be entered
+asked_for_command     : boolean, indicates that currently a game command
+		      	needs to be entered
+asked_complicated_question : boolean, indicates if the message area should
+			     be parsed as text (true) or handled via the
+			     message buffer update events (false)
+
+adom_nelib_player_map() [only available during a game]
+-----------------------
+
+name         : string, the player name
+dv	     : integer, DV
+pv	     : integer, PV
+hp	     : integer, current hitpoints
+max_hp	     : integer, maximum hitpoints
+pp	     : integer, current power points
+max_pp	     : integer, maximum power points 
+level	     : integer, the current leve of the PC
+xp_progress_percentage : integer, the percentage of experience already acquired before reaching next level
+current_tactic	       : integer, the current tactics setting (0-6)
+current_tactic_name    : string, the current tactics name
+dynamic_display_type   : integer, valid values are (0-4)
+dynamic_display_hint   : string, a tooltip describing the current dynamic display mode
+dynamic_display_value  : integer, the current dynamic display value
+crowd_player_count     : integer, the total number of players in crowd mode
+crowd_friend_count     : integer, the number of friends playing in crowd mode
+can_use_skill	       : boolean, true if at least one skill could be used
+can_cast_spell	       : boolean, true if at least one spell could be cast
+can_shoot	       : boolean, true if a missile weapon could be used
+can_use_item	       : boolean, true if at least one item could be used
+can_use_mindcraft      : boolean, true if at least one mindcraft power could be used
+can_use_class_power    : boolean, true if at least one class power could be used
+x            : integer, the player X coordinate
+y            : integer, the player Y coordinate
+direction    : integer, the direction the PC is looking at (see directionids)
+health       : integer, the health of the PC (0 <= health <= 100)
+race         : integer, the race of the PC (see pcraceids)
+race_name    : string, the race name of the PC
+class        : integer, the class of the PC (see pcclassids)
+class_name   : string, the class name of the PC
+sex          : integer, the sex of the PC (see sexids)
+alignment    : integer, the alignment of the PC (see alignmentids)
+alignment_shortcut : string, the alignment shortcut of the PC (e.g. "L+", "N=")
+alignment_description : string, a textual description of the current alignment
+satiation_level : integer, the satiation level (see satiationlevelids)
+burden_level : integer, the burden level (see burdenlevelids)
+is_visible   : boolean, true if the player is visible
+is_bleeding  : boolean, true if the player is bleeding
+is_blessed   : boolean, true if the player is blessed
+is_blind     : boolean, true if the player is blind
+is_confused  : boolean, true if the player is confused
+is_deaf      : boolean, true if the player is deaf
+is_drunk     : boolean, true if the player is drunk
+is_mute      : boolean, true if the player is mute
+is_paralyzed : boolean, true if the player is paralyzed
+is_poisoned  : boolean, true if the player is poisoned
+is_sick      : boolean, true if the player is sick
+is_sleeping  : boolean, true if the player is sleeping
+is_slowed    : boolean, true if the player is slowed
+is_stunned   : boolean, true if the player is stunned
+
+"body_part" subtable with:
+item             : integer, the item ID (see itemids) at body part x (see bodypartids)
+item_weapon_type : integer, the weapon-type ID of the item (see itemweapontypeids) at body part x (see bodypartids)
+
+adom_nelib_draw_map(x, y)
+-------------------------
+
+is_lit            : boolean, true if the location is lit, false if dark
+level_type        : integer, the level type of the location (see leveltypeids)
+tile              : integer, the tile ID (see tileids)
+tile_color        : integer, the tile color (see colorids)
+feature           : integer, the feature ID (see featureids)
+feature_color     : integer, the feature color (see colorids)
+feature_color_pool: integer, the pool color (see colorids, only for pools, POOL)
+feature_trap_type : integer, the trap type (only for traps, OPEN_TRAP)
+feature_trap_color: integer, the trap color (see colorids, only available for traps)
+item              : integer, -1 to represent a "heap" of items or if >= 0 the item ID
+item_color        : integer, the item color (see colorids)
+item_count        : integer, the number of pieces of the item on this position
+
+being_type        : integer, -1 to represent the PC or if >= 0 the monster ID (all player attributes are available in adom_nelib_player_map)
+
+ "monster" subtable with:
+uid          : integer, the unique monster ID
+name         : string, the monster name (if set)
+type         : string, the monster type
+experience_estimate : integer, the monster experience estimate (see monsterexperienceestimateids)
+direction    : integer, the direction the monster is looking at (see directionids)
+health       : integer, the health of the monster (0 <= health <= 100)
+sex          : integer, the sex of the monster (see sexids)
+alignment    : integer, the alignment of the monster [only if known] (see alignmentids)
+attitude     : integer, the attitude of the monster (see attitudeids)
+is_companion : boolean, true if the monster is a companion
+is_boss      : boolean, true if the monster is a boss monster
+is_bleeding  : boolean, true if the monster is bleeding
+is_blessed   : boolean, true if the monster is blessed
+is_blind     : boolean, true if the monster is blind
+is_confused  : boolean, true if the monster is confused
+is_paralyzed : boolean, true if the monster is paralyzed
+is_poisoned  : boolean, true if the monster is poisoned
+is_sleeping  : boolean, true if the monster is sleeping
+is_slowed    : boolean, true if the monster is slowed
+is_stunned   : boolean, true if the monster is stunned
+is_berserk   : boolean, true if the monster is berserk
+is_afraid    : boolean, true if the monster is afraid
+
+ "temporary_being" subtable with:
+type      : integer, the type of the temporary being (see temporarybeingtypes)
+direction : integer, the temporary being direction (see directionids)
+
+ "overlay" subtable with:
+item                 : integer, the item ID (e.g. of a missile)
+color                : integer, the color of the effect (e.g. explosion), see colorids or -1 if no color is defined
+item_direction       : integer, the item direction (see directionids)
+item_direction_old   : integer, the old item direction (see directionids)
+effect_type          : integer, the effect type (see effecttypeids)
+effect_direction     : integer, the effect direction (see directionids)
+effect_direction_old : integer, the old effect direction (see directionids)
+effect_step          : integer, the effect step
+
+ "blood" subtable with:
+level      : integer, the amount of blood
+visibility : integer, the blood visibility in percent (0 <= visibility <= 100)
+
+
+adom_nelib_message_buffer()
+---------------------------
+
+line_count: integer, the number of lines in the buffer from oldest to newest
+
+for each line_count:
+  line  : string, the actual line
+  color : integer, the color for the given line (see colorids)
+
+additional functions
+--------------------
+
+adom_nelib_log_info() writes a message with level INFO to adom.log
+adom_nelib_log_warn() writes a message with level WARN to adom.log
+adom_nelib_log_error() writes a message with level ERROR to adom.log
+
+
+adom_nelib_post_command_at_position(game_command, x, y)
+-------------------------------------------------------
+(post a game_command at the given location, used for context menu selections)
+
+game_command      : integer, game command id (see gamecommandids)
+x                 : integer, 0 <= x < 80
+y                 : integer, 0 <= y < 25
+
+
+adom_nelib_item_info_map(index)
+-------------------------------
+(used in inventory lists, "index" is either the body part number
+ or the index in the stuff list)
+
+item              : integer, the item ID
+name              : string, the item name
+weight            : integer, the item weight
+color             : integer, the item color
+count             : integer, the item count (pieces)
+
+
+adom_nelib_get_game_command_info(commandid)
+-------------------------------------------
+
+key_sequence	: string, a textual description of the shortest command
+		  sequence enterable by keyboard in order to activate the
+		  given command
+
+
+adom_nelib_get_monster_ascii_info(monstertype)
+----------------------------------------------
+
+ascii_image	: integer, the character code for the monster ASCII characte
+ascii_color	: integer, the color code for the monster in ASCII moder
+
+
+adom_nelib_context_info_map(x, y)
+---------------------------------
+(returns a context info map for the given location, 0 <= x < 80, 0 <= y < 25)
+
+monster           : map with monster information (empty if no monster), for fields see "monster" subtable in adom_nelib_draw_map()
+tile              : map with tile information, see below
+feature           : map with feature information, see below
+item              : map with item information, see below
+
+ "tile"
+tile              : integer, the tile ID (see tileids)
+tile_color        : integer, the tile color (see colorids)
+
+ "feature"
+feature           : integer, the feature ID (see featureids)
+feature_color     : integer, the feature color (see colorids)
+feature_color_pool: integer, the special pool feature color
+
+ "item"
+item              : integer, -1 to represent a "heap" of items or if >= 0 the item ID
+item_color        : integer, the item color (see colorids)
+item_count        : integer, the number of pieces of the item on this position
+
+
+adom_nelib_left_clicked_on_info_map(x, y) and
+adom_nelib_right_clicked_on_info_map(x, y)
+---------------------------------------------
+
+info              : map with context information, see context_info_map()
+commands          : map with command information, see below
+
+ "commands"
+available_commands : integer, the number of available commands
+available_important_commands : integer, the number of available important commands
+max_hint_text_length : integer, the maximum length of the hint texts
+
+ for each "command"
+available         : boolean, true if the command is available
+important         : boolean, true if the command is important
+command           : integer, see gamecommandids
+key_sequence      : string, the key sequence (e.g. "Ctrl+t")
+hint_text         : string, the hint text (e.g. "Open door")
+
+
+adom_nelib_set_dynamic_display(mode)
+------------------------------------
+mode	: integer, valid values are 0-4 to change the dynamic display mode
+
+
+adom_nelib_get_all_game_events() returns an array of game event maps (see below)
+
+attribute contained in all game event maps
+------------------------------------------
+
+game_event_id     : integer, game event id (see gameeventids)
+
+
+special game event map for GE_GAMBLING_MACHINE_SYMBOLS
+------------------------------------------------------
+symbol1           : integer, the rolled first symbol (0 <= symbol <= 17)
+symbol2           : integer, the rolled second symbol (0 <= symbol <= 17)
+symbol3           : integer, the rolled third symbol (0 <= symbol <= 17)
+
+
+special game event map for GE_ACHIEVEMENT_UNLOCKED
+--------------------------------------------------
+id		: string, the text ID of the achievement
+title		: string, the title of the achievement
+description	: string, the description of the achievement
+
+
+special game event map for GE_OVERLAY_INFO_SET
+----------------------------------------------
+current_step      : integer, the current step of the effect
+effect_type       : integer, the effect type (see effecttypeids)
+
+
+special game event map for GE_OVERLAY_INFO_CLEARED
+--------------------------------------------------
+current_step      : integer, the current step of the effect
+effect_type       : integer, the effect type (see effecttypeids)
+
+
+special game event map for GE_TEXT_WINDOW_DISPLAYED
+---------------------------------------------------
+window_title      : string, the window title
+window_type       : integer, the window type (see windowtypeids)
+window_x          : integer, the window x coordinate (position, not pixel)
+window_y          : integer, the window y coordinate (position, not pixel)
+window_width      : integer, the window width (position, not pixel)
+window_height     : integer, the window height (position, not pixel)
+page_size         : integer, the page size used by ADOM (lines, not pixel)
+lines             : integer, the number of text lines
+width             : integer, the maximum number of characters per line
+
+
+special game event map for GE_HITPOINTS_GAINED and GE_HITPOINTS_LOST
+--------------------------------------------------------------------
+uid               : integer, the unique monster ID, -1 for the PC
+difference        : integer, the hitpoint difference
+cause             : integer, the cause (see hitpointmodificationcauseids)
+x                 : integer, the x coordinate
+y                 : integer, the y coordinate
+
+
+special game event map for GE_WEAPON_USED
+-----------------------------------------
+item_weapon_type  : integer, the item weapon type (see itemweapontypeids)
+item              : integer, the item ID
+panning           : integer, the panning (0 <= x <= 100)
+hit_type          : integer, the hit type (see hittypeids)
+x
+y
+
+
+special game event map for GE_MISSILE_FIRED
+-------------------------------------------
+effect_type       : integer, the effect type (see effecttypeids)
+panning           : integer, the panning (0 <= x <= 100)
+is_seen_by_pc     : boolean, true if the PC can see the missile
+is_heard_by_pc    : boolean, true if the PC can hear the missile
+
+
+special game event map for GE_EXPLOSION
+---------------------------------------
+damage_type       : integer, the damage type (see damagetypeids)
+panning           : integer, the panning (0 <= x <= 100)
+is_seen_by_pc     : boolean, true if the PC can see the explosion
+is_heard_by_pc    : boolean, true if the PC can hear the explosion
+
+
+special game event map for GE_MINDCRAFT_INVOKED
+-----------------------------------------------
+mental_power      : integer, the mental power (see mentalpowerids)
+panning           : integer, the panning (0 <= x <= 100)
+is_seen_by_pc     : boolean, true if the PC can see the mindcraft effect
+is_heard_by_pc    : boolean, true if the PC can hear the mindcraft effect
+x                 : integer, the x coordinate
+y                 : integer, the y coordinate
+
+
+special game event map for GE_MONSTER_BREATH
+--------------------------------------------
+effect_type       : integer, the effect type (see effecttypeids)
+panning           : integer, the panning (0 <= x <= 100)
+is_seen_by_pc     : boolean, true if the PC can see the monster breath
+is_heard_by_pc    : boolean, true if the PC can hear the monster breath
+
+
+special game event map for GE_SPELL_CAST
+----------------------------------------
+spell_number      : integer, the spell number (see spellnumberids)
+panning           : integer, the panning (0 <= x <= 100)
+is_seen_by_pc     : boolean, true if the PC can see the spell effect
+is_heard_by_pc    : boolean, true if the PC can hear the spell effect
+x                 : integer, the x coordinate
+y                 : integer, the y coordinate
+
+
+special game event map for GE_STARTUP_MESSAGE
+---------------------------------------------
+message		: string, the startup message to be displayed
+
+
+special game event map for GE_MONSTER_MEMORY_DISPLAYED
+------------------------------------------------------
+filename	: optional string containing the name of the character image
+		  to display; can be empty (as it's optional ;-) )
+
+
+special game event map for GE_MAIN_MENU_DISPLAYED
+-------------------------------------------------
+version		: string, the version string for the lower right corner
+
+
+special game event map for GE_DISPLAY_MODE_CHANGED
+--------------------------------------------------
+display_mode	: a code from displaymodes
+
+
+special game event map for GE_NE_COMMAND_CHANGE_SOUND_VOLUME
+------------------------------------------------------------
+volume		: int, the new volume level
+
+
+special game event map for GE_NE_CHANGE_NOTEYE_VARIABLE
+-------------------------------------------------------
+name		: string, the variable name
+value		: <different types>, the variable value
+
+
+special game event map for GE_NE_COMMAND_CHANGE_MUSIC_VOLUME
+------------------------------------------------------------
+volume		: int, the new volume level
+
+
+special game event map for GE_MESSAGE_LINE_UPDATED
+--------------------------------------------------
+updated		: boolean, updated (TRUE) or newly created line (FALSE)
+question	: boolean, indicates if the current line introduces a question
+		  to the player
+line		: string, the line content
+
+
+special game event map for GE_PLAYER_SINGLE_MOVE
+------------------------------------------------
+terrain_type    : integer, the terrain type (see terraintypeids)
+panning         : integer, the panning (0 <= x <= 100)
+x               : integer, the target x coordinate
+y               : integer, the target y coordinate
+
+
+adom_nelib_get_all_races()
+--------------------------
+ 
+max_race: integer, the number of races in the same order as during ADOM ASCII character generation
+ 
+for each max_race:
+  race_name              : string, the actual name of the race
+  race_description_short : string, the short description of the race
+  race_description_long  : string, the description of the race as taken from the manual
+ 
+
+adom_nelib_get_all_classes()
+----------------------------
+
+max_class: integer, the number of classes in the same order as during ADOM ASCII character generation
+
+for each max_class:
+   class_name              : string, the actual name of the class
+   class_description_short : string, the short description of the class
+   class_description_long  : string, the description of the class as taken from the manual
+   body_part               : table with starting equipment, same data structure as body_part from adom_nelib_player_map()
+
+adom_nelib_get_all_star_signs()
+-------------------------------
+ 
+max_star_sign: integer, the number of star signs in the same order as during ADOM ASCII character generation
+ 
+for each max_starsign:
+   star_sign_name        : string, the actual name of the star sign
+   star_sign_aspects     : string, the aspects of the star sign as taken from the manual
+   star_sign_effects     : string, the game effects of the star sign as taken from the manual
+
+
+adom_nelib_get_tome_of_knowledge_setup()
+----------------------------------------
+ 
+mindcraft_stats_available   : boolean, indicates if the mindcraft tab should be shown in the PC statistics
+class_power_stats_available : boolean, indicates if the class power tab should be shown in the PC statistics
+spell_stats_available       : boolean, indicates if the spell knowledge tab should be shown in the PC statistics
+corruption_stats_available  : boolean, indicates if the chaos power tab should be shown in the PC statistics
+
+
+adom_nelib_get_tome_of_knowledge_pc_overview()
+----------------------------------------------
+
+dv	     : integer, DV
+pv	     : integer, PV
+hp	     : integer, current hitpoints
+max_hp	     : integer, maximum hitpoints
+pp	     : integer, current power points
+max_pp	     : integer, maximum power points 
+attribute_data                : structure with
+  max_attribute               : integer, the maximum attribute description line
+  for each max_attribute
+    attribute_name            : string, the name of the attribute
+    attribute_raw_value       : integer, the basic attribute value without magical modifications or boosts
+    attribute_raw_max_value   : integer, the maximum natural attribute value
+    attribute_boosts          : integer, the current attribute boosts effecting the character
+    attribute_magical_bonus   : integer, the current item and other magical bonusses affecting the attribute
+    attribute_current_value   : integer, the current effective value including all boosts and bonusses
+misc_data                     : structure with
+    race                      : integer, the race of the PC (see pcraceids)
+    class                     : integer, the class of the PC (see pcclassids)
+    sex                       : integer, the sex of the PC (see sexids)
+    speed_unmodified          : integer, the basic speed score of the PC
+    speed_modified            : integer, the current speed score of the PC
+    speed_modifiers           : integer, current minus basic (as a convenience)
+    speed_description         : string, the textual description of the current speed
+    gold_pieces               : integer, the number of gold pieces owned by the PC
+    gold_pieces_description   : string, the textual description of the current wealth (taking into account the ability to count)
+    debts                     : integer, the gold pieces owed to shop owners
+    deity                     : string, the name of the deity worshipped by the PC
+    passed_time_years         : integer, the number of Ancardian years passed
+    passed_time_days          : integer, the number of Ancardian days passed
+    passed_time_hours         : integer, the number of Ancardian hours passed
+    passed_time_minutes       : integer, the number of Ancardian minutes passed
+    passed_time_seconds       : integer, the number of Ancardian seconds passed
+    day_of_birth              : integer, the year day on which the PC was born
+    day_in_month_of_birth     : integer, the day in the month of the PCs birth
+    star_sign_of_birth        : integer, the star sign of the PC (ID)
+    star_sign_of_birth_name   : string, the star sign name of the PC
+    current_month             : integer, the current Ancardian month
+    current_month_name        : string, the current Ancardian month name
+    current_day_of_month      : integer, the day of the current Ancardian month
+    current_day_of_year       : integer, the day of the current Ancardian year
+    current_week_name         : string, the name of the current week
+    current_moon_phase_name   : string, the name of the current moon phase
+    natural_age               : integer, the natural age of the PC in years
+    unnatural_age             : integer, the unnatural age of the PC
+    total_age                 : integer, the sum of the natural and unnatural age
+    encumbrance_current       : integer, the current encumbrance in stones
+    encumbrance_burdened      : integer, the weight in stones at which the PC becomes burdened
+    encumbrance_strained      : integer, the weight in stones at which the PC becomes strained
+    encumbrance_very_strained : integer, the weight in stones at which the PC becomes very strained
+    encumbrance_overburdened  : integer, the weight in stones at which the PC becomes overburdened
+melee_combat_data             : structure with
+    right_hand_to_hit         : integer, to hit bonus (e.g. 6)
+    right_hand_base_damage    : string, base damage notation (e.g. "2d8")
+    right_hand_damage_add     : string, the damage modifier (e.g. "1d4")
+    right_hand_extra_damage   : string, the extra special game (e.g. "+2d6")
+    right_hand_total_damage   : string, the total damage string (e.g. "2d8+4+2d6")
+    right_hand_damage_divisor : integer, the divisor (1 or more)
+    right_hand_damage_text    : string, the full damage description (e.g. "Right hand: +6 bonus to hit, 2d8+4+2d6 damage")
+    left_hand_to_hit          : integer, to hit bonus (e.g. 6)
+    left_hand_base_damage     : string, base damage notation (e.g. "2d8")
+    left_hand_damage_add      : string, the damage modifier (e.g. "1d4")
+    left_hand_extra_damage    : string, the extra special game (e.g. "+2d6")
+    left_hand_total_damage    : string, the total damage string (e.g. "2d8+4+2d6")
+    left_hand_damage_divisor  : integer, the divisor (1 or more)
+    left_hand_damage_text     : string, the full damage description (e.g. "Right hand: +6 bonus to hit, 2d8+4+2d6 damage")
+kick_combat_data              : structure with
+    kick_to_hit               : integer, the to-hit bonus (e.g. 3)
+    kick_base_damage          : string, the base damage die (e.g. "1d4")
+    kick_damage_add           : integer, the damage modifier (e.g. 2)
+    kick_total_damage         : string, the total damage string (e.g. "1d4+2")
+    kick_damage_text"         : string, the full damage description (e.g. "Kick attack: +3 bonus to hit, 1d4+2 damage")
+missile_attack_data           : structure with
+    missile_ammunition        : integer, only defined if ammunition is used, the amount available
+    missile_to_hit            : integer the to-hit bonus (e.g. 5)
+    missile_total_damage      : string, the total damage description (e.g. "2d5+4")
+    missile_range             : integer, the range of the missile weapon
+    missile_damage_text       : string, the full damage descripton (e.g. "Ammunition: 11, base range: 9 , +5 bonus to hit, 2d5+4 damage"
+ 
+
+adom_nelib_get_tome_of_knowledge_spell_knowledge()
+--------------------------------------------------
+
+max_spells            : integer, the number of spells known
+for each max_spells:
+    spell_name        : string, the name of the spell
+    spell_memory      : integer, the spell memory of the PC
+    spell_cost        : integer, the cost in power points to cast the spell
+    spell_parameters  : string, the variable values of the spell
+
+
+
+adom_nelib_get_tome_of_knowledge_skill_knowledge(boolean advancement)
+-------------------------------------------------------------------
+ 
+max_skills                       : integer, the number of spells known
+for each max_skills:
+    skill_name                    : string, the name of the skill
+    skill_assigned_number         : integer, the number assigned as a quick mark to the skill (1-9, undefined otherwise)
+    skill_score                   : integer, the current skill score
+    skill_textual_level           : string, the textual description of the current skill score
+    skill_advancement_scheme      : string, the advancement scheme for the skill
+    skill_needs_item              : boolean, indicates if a specific item is required to use the skill
+    skill_needs_item_and_has_item : boolean, indicates if an item is needed _and_ is available to use the skill
+    skill_can_be_increased        : boolean, indicates if the skill can be advanced (only if advancement is true, undefined otherwise)
+    skill_maximum                 : integer, the maximum score to which the skill currently can be advanced (only if advancement is true and 
+                                    the skill can be increased, undefined otherwise)

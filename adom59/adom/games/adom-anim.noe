@@ -1,0 +1,395 @@
+-- animation system
+
+animdir = commondir.."../gfx/adom/"
+
+-- the global tables
+AnimationCfgs = {}
+AnimationInfos = {}
+
+
+function get_loop_elements(fields, attribute)
+
+  for i,v in ipairs(fields) do
+    v = trim(v)
+    local values = v:split("=")
+    local key = trim(values[1])
+    local value = trim(values[2])
+
+    if key == attribute then
+      local entries = value:split("|")
+      return entries
+      end
+    end
+
+    -- return a special value to indicate that the attribute isn't specified
+    return { "__undefined_attribute__" }
+  end
+
+
+function add_mapped_value(entry, key, value, ids)
+  if value == "__undefined_attribute__" or value == nil then return end
+  value = trim(value)
+  local mapped = ids[value]
+  if mapped == nil then
+    adom_nelib_log_warn("animation config: mapped value of '"..value.."' for key '"..key.."' not found")
+    return
+    end
+--print("adding mapped value '"..mapped.."' of value '"..value.."' for key '"..key.."'")
+  entry[key] = mapped
+  end
+
+
+function table.copy(t)
+  local u = { }
+  for k, v in pairs(t) do u[k] = v end
+  return setmetatable(u, getmetatable(t))
+  end
+
+
+function add_unmapped_values(entry, attributes)
+
+  for i,v in ipairs(attributes) do
+    v = trim(v)
+    local values = v:split("=")
+    local key = trim(values[1])
+    local value = trim(values[2])
+
+    -- don't overwrite existing attributes
+    if (entry[key] == nil) then
+      entry[key] = value
+      end
+    end
+  end
+
+
+function handle_anim_cfg_line(line, type)
+  local attributes = line:split(",")
+
+  local entry = { type=type }
+
+  for a,event in ipairs(get_loop_elements(attributes, 'event')) do
+
+    add_mapped_value(entry, 'event', event, gameeventids)
+
+    for b,cause in ipairs(get_loop_elements(attributes, 'cause')) do
+      add_mapped_value(entry, 'cause', cause, hitpointmodificationcauseids)
+
+      for c,area_brightness in ipairs(get_loop_elements(attributes, 'area-brightness')) do
+        add_mapped_value(entry, 'area-brightness', area_brightness, areabrightnessids)
+
+        for d,spell_number in ipairs(get_loop_elements(attributes, 'spell-number')) do
+          add_mapped_value(entry, 'spell-number', spell_number, spellnumberids)
+
+          for e,monster_spell in ipairs(get_loop_elements(attributes, 'monster-spell')) do
+            add_mapped_value(entry, 'monster-spell', monster_spell, monsterspellids)
+
+            for f,mental_power in ipairs(get_loop_elements(attributes, 'mental-power')) do
+              add_mapped_value(entry, 'mental-power', mental_power, mentalpowerids)
+
+              for g,damage_type in ipairs(get_loop_elements(attributes, 'damage-type')) do
+                add_mapped_value(entry, 'damage-type', damage_type, damagetypeids)
+
+                for h,hit_type in ipairs(get_loop_elements(attributes, 'hit-type')) do
+                  add_mapped_value(entry, 'hit-type', hit_type, hittypeids)
+
+                  for i,direction in ipairs(get_loop_elements(attributes, 'direction')) do
+                    add_mapped_value(entry, 'direction', direction, directionids)
+
+                    for r,item_weapon_type in ipairs(get_loop_elements(attributes, 'item-weapon-type')) do
+                      add_mapped_value(entry, 'item-weapon-type', item_weapon_type, itemweapontypeids)
+
+                      add_unmapped_values(entry, attributes)
+
+                      table.insert(AnimationCfgs, table.copy(entry))
+
+                      end
+                    end
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+
+function load_anim_configuration()
+--  print("loading anim configuration")
+
+  if not file_exists(animdir.."anim.cfg") then
+    logprint2("anim configuration file missing")
+    return
+    end
+
+  local type = "anim"
+
+  local file = io.open(animdir.."anim.cfg", "r")
+  for line in file:lines() do
+    local first = string.sub(line, 1, 1)
+    if first ~= '' and
+       first ~= ' ' and
+       first ~= '#' and
+       first ~= '[' then
+      handle_anim_cfg_line(line, type)
+    end
+
+  end
+  file:close()
+
+logprint2("AnimationCfgsTable: "..#AnimationCfgs.." entries")
+--  for i,v in pairs(AnimationCfgs) do
+--    print(i,v)
+--    for j,w in pairs(v) do
+--      print("  ",j,w)
+--    end
+--  end
+
+end
+
+
+function search_for_matching_animation(sevent)
+
+  local game_event_id = sevent.game_event_id
+--logprint2("game_event_id "..game_event_id)
+  local sarea_brightness = sevent.area_brightness
+  local scause = sevent.cause
+  local sspell_number = sevent.spell_number
+  local smonster_spell = sevent.monster_spell
+  local smental_power = sevent.mental_power
+  local sdamage_type = sevent.damage_type
+--if (sdamage_type) then
+--  logprint2("damage_type = "..sdamage_type)
+--  end
+  local shit_type = sevent.hit_type
+  local sdirection = sevent.direction
+  local sitem_weapon_type = sevent.item_weapon_type
+
+  -- collects the entries that match the search condition
+  local entries = {}
+
+  for i,entry in pairs(AnimationCfgs) do
+
+    local event = entry['event']
+    local cause = entry['cause']
+    local area_brightness = entry['area-brightness']
+    local spell_number = entry['spell-number']
+    local monster_spell = entry['monster-spell']
+    local mental_power = entry['mental-power']
+    local damage_type = entry['damage-type']
+    local hit_type = entry['hit-type']
+    local direction = entry['direction']
+    local item_weapon_type = entry['item-weapon-type']
+
+    if value_matches(game_event_id, event) and
+       value_matches(scause, cause) and
+       value_matches(sarea_brightness, area_brightness) and
+       value_matches(sspell_number, spell_number) and
+       value_matches(smonster_spell, monster_spell) and
+       value_matches(smental_power, mental_power) and
+       value_matches(sdamage_type, damage_type) and
+       value_matches(shit_type, hit_type) and
+       value_matches(sdirection, direction) and
+       value_matches(sitem_weapon_type, item_weapon_type) then
+      table.insert(entries, entry)
+    end
+  end
+
+--logprint2("found "..#entries)
+  if #entries == 0 then
+    return nil
+  elseif #entries == 1 then
+    return entries[1]
+  else
+    -- select one randomly
+    local index = math.random(#entries)
+    return entries[index]
+  end
+
+end
+
+
+-- the anim info (during playback)
+-- active: the animation is only visible if active (used for start-delay)
+-- x: the x coordinate
+-- y: the y coordinate
+-- distance: the distance to the center (e.g. of an explosion)
+-- frame: the current frame number (starting with 1)
+-- max_frames: the maximum number of frames
+-- loops: the current loop (starting with 0)
+-- max_loops: the maximum number of loops (loops = 1 means the anim is played twice)
+-- frame_delay: the delay between frames (in milliseconds)
+-- start_delay: the delay before the animation starts
+-- distance_delay: the delay influenced by the distance (e.g. of an explosion)
+-- last_ticks: the ticks of the last frame
+-- files: the file path
+-- anchor: the anchor (either 'being', 'healthbar' or 'location')
+
+function create_anim_info(anim_cfg, anim_id, x, y, distance)
+  local anim_info = {}
+  anim_info.active = false
+  anim_info.x = x
+  anim_info.y = y
+  anim_info.offset_x = tonumber(get_entry_value(anim_cfg, 'offset-x', 0))
+  anim_info.offset_y = tonumber(get_entry_value(anim_cfg, 'offset-y', 0))
+  anim_info.mirror_x = get_entry_value(anim_cfg, 'mirror-x', 'NO') == 'YES'
+  anim_info.mirror_y = get_entry_value(anim_cfg, 'mirror-y', 'NO') == 'YES'
+  anim_info.frame = 1
+  anim_info.max_frames = tonumber(get_entry_value(anim_cfg, 'max-frames', 0))
+  anim_info.loops = 0
+  anim_info.max_loops = tonumber(get_entry_value(anim_cfg, 'max-loops', 0))
+  anim_info.frame_delay = get_entry_value(anim_cfg, 'frame-delay', 10)
+  anim_info.start_delay = get_entry_value(anim_cfg, 'start-delay', 0)
+  anim_info.distance_delay = get_entry_value(anim_cfg, 'distance-delay', 0)
+  anim_info.files = get_entry_value(anim_cfg, 'files', nil)
+  anim_info.anchor = get_entry_value(anim_cfg, 'anchor', 'being')
+  anim_info.last_ticks = getticks() + anim_info.start_delay + (distance * anim_info.distance_delay)
+  -- only set the animation ID if the anchor isn't "location"
+  if anim_info.anchor ~= 'location' then
+    if not anim_id then
+      adom_nelib_log_warn("anim_id isn't set for anchor != location, anchor = "..(anim_info.anchor or "nil"))
+      end
+    anim_info.id = anim_id
+    end
+  return anim_info
+end
+
+
+function handle_game_event_anim(ev)
+--logprint2("handle_game_event_anim")
+
+--print("seen by pc "..(ev.is_seen_by_pc or "n/a"))
+  if ((ev.is_seen_by_pc == nil) or ev.is_seen_by_pc) then
+
+    local entry = search_for_matching_animation(ev)
+    if entry then
+      local anim_id = create_anim_id(ev.x, ev.y)
+      if anim_id == nil then
+        adom_nelib_log_warn("anim_id is nil during handle_game_event, id = "..ev.game_event_id)
+      else
+        local distance = ev.distance or 0
+        local anim_info = create_anim_info(entry, anim_id, ev.x, ev.y, distance)
+        table.insert(AnimationInfos, anim_info)
+        end
+      end
+    end
+
+end
+
+-- called in render loop (each frame)
+function update_animation_infos()
+
+  if not Global.is_game_running then return end
+
+--print("update_animation_infos "..#AnimationInfos)
+  for i,ai in ipairs(AnimationInfos) do
+
+    if getticks() > ai.last_ticks + ai.frame_delay then
+
+      ai.active = true
+
+      if ai.frame < ai.max_frames then
+        -- next frame
+        ai.last_ticks = getticks()
+        ai.frame = ai.frame + 1
+      elseif ai.loops < ai.max_loops then
+        -- start a new loop
+        ai.last_ticks = getticks()
+        ai.frame = 1
+        ai.loops = ai.loops + 1
+      else
+        -- the animation was played completely, we mark it as finished
+        ai.finished = true
+        end
+      end
+    end
+
+  -- compact the array if entries were marked as finished
+  local j = 0
+--print("compacting animation infos "..#AnimationInfos)
+  for i = 1, #AnimationInfos do
+    if not AnimationInfos[i].finished then
+      j = j + 1
+      AnimationInfos[j] = AnimationInfos[i]
+      end
+    end
+  for i = j + 1, #AnimationInfos do
+    AnimationInfos[i] = nil
+    end
+
+end
+
+
+function create_anim_id(x, y)
+  if (x == nil) or (y == nil) then
+    adom_nelib_log_warn("missing coordinates in create_anim_id() ("..(x or "nil")..", "..(y or "nil")..")")
+    return nil
+    end
+  local f = adom_nelib_draw_map(x, y)
+  if f == nil then
+    adom_nelib_log_warn("draw_map is nil for coordinate ("..(x or "nil")..", "..(y or "nil")..")")
+    return nil
+    end
+  if f.being_type == -1 then return -1 end
+  if f.monster and f.monster.uid then return f.monster.uid end
+  return nil
+end
+
+
+
+-- renders all animation for the given coordinates
+-- the "anchor" parameter determines where the animation is used,
+-- either anchor = "being" or "healthbar" (they move together)
+-- or anchor = "location"
+
+
+function render_anims(x, y, M, anchor)
+
+--print("# animationInfos"..#AnimationInfos)
+
+  local anim_id = create_anim_id(x, y)
+--  if anim_id == nil then
+--    adom_nelib_log_warn("anim_id is nil during render_anims(), x = "..(x or "nil")..", "..(y or "nil")..")")
+--    return
+--    end
+
+  local img = nil
+  for i,ai in ipairs(AnimationInfos) do
+
+    if ai.active then
+
+      if ((not ai.id and ai.x == x and ai.y == y) or (ai.id and ai.id == anim_id)) and ai.anchor == anchor then
+        local file = string.format(ai.files, ai.frame)
+        local gfx = adomtile(file, transAlpha)
+        local imgsiz = imggetsize(tiles[file].pic)
+--print("imgsiz "..(imgsiz.x).." x "..(imgsiz.y))
+--print("tsx "..tsx..", tsy "..tsy)
+--print("offset "..ai.offset_x..", "..ai.offset_y)
+--print("v1 "..(imgsiz.x/tsx/2))
+--print("v2 "..(ai.offset_x/tsx))
+        local delta_x =  0.5-(imgsiz.x/tsx/2)+(ai.offset_x/tsx)
+        local delta_y = -0.2-(imgsiz.y/tsy/2)+(ai.offset_y/tsy)
+--print("delta "..delta_x..", "..delta_y)
+        local scale_x = imgsiz.x/tsx
+        local scale_y = imgsiz.y/tsy
+        if (ai.mirror_x) then scale_x = -scale_x end
+        if (ai.mirror_y) then scale_y = -scale_y end
+--print("scale "..scale_x..", "..scale_y)
+        gfx = tiletransform(gfx, delta_x, delta_y, scale_x, scale_y)
+
+        if img then
+          img = tilemerge(img, gfx)
+        else
+          img = gfx
+          end
+
+      end
+    end
+  end
+
+  return img
+end
+
+-- load configuration on startup
+load_anim_configuration()

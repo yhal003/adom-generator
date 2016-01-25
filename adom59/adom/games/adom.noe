@@ -1,0 +1,2008 @@
+-- Necklace of the Eye v5.2 roguelike frontend
+-- Copyright (C) 2010-2012 Zeno Rogue, see COPYING for details
+
+noteye_support_address = 
+  "Sorry for this! ADOM is still not perfect.\n"..
+  "Please report to the ADOM DevTeam so we can fix it!\n\n"
+
+if not noteyeloaded then
+  if getcrashval() == 1 then
+    local f = adom_nelib_log_error or (function() end)
+    f(geterrormsg())
+    noteyecrash = true
+    end
+  setcrashval(1)
+  threaded = true
+  game_to_launch = "adom"
+  hidenoteyelicense = true
+  dofile "common/noteye.noe"
+  return
+  end
+
+noteyeLicense =
+  "ADOM is using NotEye under a formal GPL licensing exception allowing ADOM\n"..
+  "and NotEye to be bound together without ADOM having to abide by the GPL.\n\n"
+
+gfxa = gfxdir.."adom/"
+
+dofile "games/adom-tables.noe"
+dofile "games/adom-utils.noe"
+dofile "games/adom-uiutils.noe"
+
+dofile(commondir.."generic-tile.noe")
+
+addinfo(violenceinfo, 75, "show blood")
+addinfo(detailinfo, 20, "nice walls")
+addinfo(detailinfo, 30, "nice walls in the tactical mode")
+addinfo(detailinfo, 40, "special decoration in special levels")
+addinfo(detailinfo, 50, "color waves in TOEF, underwater, etc.")
+addinfo(detailinfo, 60, "feathered fog of war")
+addinfo(detailinfo, 70, "wall shadows")
+addinfo(detailinfo, 95, "character decals")
+
+if true then
+
+  HasVariants = {}
+  
+  mdw = "maps/dungeon/walls/"
+  mdd = "maps/dungeon/decals/"
+  mdf = "maps/dungeon/features/"
+
+  cursor_attack = tilespatial(adomtile("nterface/cursor/attack", transAlpha), spFlat + spIFloor + spMonst)
+  cursor_command = tilespatial(adomtile("nterface/cursor/command", transAlpha), spFlat + spIFloor + spMonst)
+  cursor_look = tilespatial(adomtile("nterface/cursor/look", transAlpha), spFlat + spIFloor + spMonst)
+  cursor_teleport = tilespatial(adomtile("nterface/cursor/teleport", transAlpha), spFlat + spIFloor + spFloor)
+  cursor_tile = tilespatial(adomtile("nterface/cursor/tile", transAlpha), spFlat + spIFloor + spFloor)
+
+  torchpic = tiles[mdd.."fx_torch"].pic
+  torchsize = tiles[mdd.."fx_torch"].size
+
+  torchglowfull = tiles[mdd.."fx_torch"].t
+
+  torchonly = 
+    tilemerge(
+      tilespatial(tiletransform(
+        adomtile(mdd.."w_torch", transAlpha),
+        0, 3/16, 1,1), spFlat + spIWall),
+      tilespatial(tiles[mdd.."fx_torch"].t, spIWall)
+      )
+
+  tilesets = {}
+  
+  tilesets.dungeon = {
+    dir = "maps/dungeon/",
+    parent = { dir = "maps/outdoor/" },
+    name = "dungeon",
+    floordecal = {mdd.."f_crack_1", mdd.."f_crack_2", mdd.."c_stones", mdd.."f_stone"},
+    floordecalchance = 40,
+    walldecal = {
+      tilespatial(tiletransform(adomtile(mdd.."w_web", transAlpha), 0, 3/16, 1, 1), spFlat + spIWall),
+      tilespatial(tiletransform(adomtile(mdd.."w_handle", transAlpha), 0, 3/16, 1, 1), spFlat + spIWall),
+      torchonly,
+      tilespatial(tiletransform(adomtile(mdd.."w_in", transAlpha), 0, 0, 1, 1), spFlat + spIWall)
+      },
+    fppwalldecal = {
+      tilespatial(tiles[mdd.."w_web"].t, spWall),
+      tilespatial(tiles[mdd.."w_handle"].t, spWall),
+      tilespatial(tilemerge(tiles[mdd.."w_torch"].t, tiles[mdd.."fx_torch"].t), spWall),
+      tilespatial(addtile0(tiles[mdd.."w_in"].pic, 0, 14, 64, 34, transAlpha), spWall)
+      },
+    walldecalchance = 50,
+    }
+
+  tilesets.outdoor = {
+    dir = "maps/outdoor/",
+    parent = tilesets.dungeon,
+    name = "outdoor"
+    }
+
+  tilesets.water = {
+    dir = "maps/water/",
+    parent = tilesets.dungeon,
+    name = "water",
+    floordecal = applist("maps/water/decals/floor_", {"1", "2"})
+    }
+
+  tilesets.piranha = {
+    dir = "maps/piranha/",
+    parent = tilesets.dungeon,
+    name = "piranha"
+    }
+  
+  tilesets.fire = {
+    dir = "maps/fire/",
+    parent = tilesets.dungeon,
+    name = "fire",
+    walldecalchance = 50
+    }
+  
+  tilesets.sand = {
+    dir = "maps/sand/",
+    parent = tilesets.dungeon,
+    name = "sand",
+    floordecal = applist("maps/sand/decals/f_sand_", {"1", "2", "3", "4"}),
+    floordecalchance = 20,
+    walldecalchance = 10
+    }
+
+  tilesets.ice = {
+    dir = "maps/ice/",
+    parent = tilesets.dungeon,
+    name = "ice",
+    floordecal = applist("maps/ice/decals/f_decal", {"1", "2", "3"}),
+    floordecalchance = 5,
+    walldecalchance = 40
+    }
+
+  tilesets.corrupted = {
+    dir = "maps/corrupted/",
+    parent = tilesets.outdoor,
+    name = "corrupted"
+    }
+
+  tilesets.world = {
+    dir = "maps/world/",
+    parent = tilesets.outdoor,
+    name = "world",
+    }
+
+  function tst(suffix, bak, dx, dy)
+    local name = ts.dir..suffix
+    local t = tiles[name]
+
+    if t.variants then
+      return tiles[rpick(name, t.variants)]
+      end
+
+    if t.loaded then return t end
+
+    if gfx_exists(name.."_1") then
+      t.variants = {}
+      for k,suf in pairs({"_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9","_10"}) do
+        if gfx_exists(name..suf) then
+          tst(suffix..suf, bak, dx, dy)
+          table.insert(t.variants, name..suf)
+          end
+        end
+      return tst(suffix, bak, dx, dy)
+      end
+
+    t.loaded = true
+    
+    if ts.parent and not gfx_exists(name) then
+      local ots = ts
+      ts = ts.parent
+      local tparent = tst(suffix, bak, dx, dy)
+      ts = ots
+      tiles[name] = tparent
+      return tst(suffix, bak, dx, dy)
+      end
+    
+    t.bak = bak
+    t.dxy = V(dx, dy)      
+    return t
+    end
+  
+  function tstile(suffix, bak, dx, dy)
+    return tst(suffix, bak, dx, dy).t
+    end
+
+  function tstilesc(suffix, bak, dx, dy)
+    return tst(suffix, bak, dx, dy).scaled
+    end
+    
+  function tspic(suffix, bak, dx, dy)
+    return tst(suffix, bak, dx, dy).pic
+    end
+    
+  local function addwalldecals(tileset, name, x)
+    tileset.walldecal = {}
+    tileset.fppwalldecal = {}
+    for k,v in pairs(x) do
+      local tile = adomtile(name..v, transAlpha)
+      tileset.walldecal[k] = tilespatial(tile, spFlat + spIWall)
+      tileset.fppwalldecal[k] = tilespatial(tile, spWall)
+      end      
+    end
+  
+  addwalldecals(tilesets.water, "maps/water/decals/wall_", {"1", "2", "3", "4"})
+  addwalldecals(tilesets.fire, "maps/fire/decals/wall_", {"1", "2", "3", "4", "5"})
+  addwalldecals(tilesets.sand, "maps/sand/decals/hiero_", {"1", "2", "3", "4"})
+  addwalldecals(tilesets.ice, "maps/ice/decals/w_deco0", {"1", "2", "3", "4"})
+
+  fppwalls = {}
+
+  WeakFrameImg = newimage(64, 48)
+  MediumFrameImg = newimage(64, 48)
+  FrameImg = newimage(64, 48)
+  CheckImg = newimage(64, 48)
+  for x=0,63 do for y=0,47 do
+    -- setpixel(FrameImg,x,y, 0)
+    if x==0 or x==63 or y==0 or y==47 then
+      setpixel(FrameImg,x,y, 0x80000000)
+      if x==63 or y==0 then
+        setpixel(WeakFrameImg,x,y, 0x40FFFFFF)
+      else
+        setpixel(WeakFrameImg,x,y, 0x40000000)
+        end                          
+      if x==63 or y==0 then
+        setpixel(MediumFrameImg,x,y, 0x60FFFFFF)
+      else
+        setpixel(MediumFrameImg,x,y, 0x60000000)
+        end
+      end
+    setpixel(CheckImg,x,y, 0x30000000)
+    end end
+
+  DirectionImg = newimage(65, 49)
+  for x=0,64 do for y=0,48 do
+    -- setpixel(FrameImg,x,y, 0)
+    if x==0 or x==64 or y==0 or y==48 then
+      if (x+y) % 2 == 0 then
+        setpixel(DirectionImg,x,y, 0xFFFFD500)
+        end
+      end
+    end end
+
+
+  WeakFrameTile = addtile(WeakFrameImg, 0,0, 64,48, transAlpha)
+  MediumFrameTile = addtile(MediumFrameImg, 0,0, 64,48, transAlpha)
+  FrameTile = addtile(FrameImg, 0,0, 64,48, transAlpha)
+  CheckTile = addtile(CheckImg, 0,0, 64,48, transAlpha)
+  DirectionTile = 
+    tiletransform(addtile(DirectionImg, 0,0, 65,49, transAlpha),
+      0, 0, 65/64, 49/48)
+  
+  Roads = {}
+  Roads[0]  = adomtile("maps/world/decals/road_cr", transAlpha)
+  Roads[5]  = adomtile("maps/world/decals/road_c", transAlpha)
+  Roads[12] = adomtile("maps/world/decals/road_s", transAlpha)
+  Roads[4]  = adomtile("maps/world/decals/road_t", transAlpha)
+  Roads[13] = adomtile("maps/world/decals/road_tcap", transAlpha)
+  Roads[7]  = adomtile("maps/world/decals/road_ecap", transAlpha)
+  Roads[3] = adomtile("maps/world/decals/road_e", transAlpha)
+  Roads[1] = adomtile("maps/world/decals/road_te", transAlpha)
+  
+  Roads[8] = tiletransform(Roads[4], 1,1, -1,-1)
+  Roads[14] = tiletransform(Roads[13], 1,1, -1,-1)
+  Roads[11] = tiletransform(Roads[7], 1,1, -1,-1)
+  Roads[15] = 0
+  Roads[2] = tiletransform(Roads[1], 1,1, -1,-1)
+
+  Roads[10] = tiletransform(Roads[5], 1,1, -1,-1)
+  Roads[9] = tiletransform(Roads[5], 1,0, -1,1)
+  Roads[6] = tiletransform(Roads[5], 0,1, 1,-1)
+
+  local function torchflicker(x,y,part,d64)
+    return 
+      tilespatial(
+        tilelayer(tiletransform(part, 
+          0.5-torchsize.x/128+x, 11/16-torchsize.y/96+y, 
+        torchsize.x/d64, torchsize.y/48), 1),
+      spFlat
+      )
+    end
+    
+  torchflickertab = {}
+  torchflickertab[0] = torchflicker(0,0,torchglowfull,64)
+  torchflickertab[1] = torchflicker( 1/64,0,torchglowfull,64)
+  torchflickertab[2] = torchflicker(-1/64,0,torchglowfull,64)
+  torchflickertab[3] = torchflicker(0, 1/48,torchglowfull,64)
+  torchflickertab[4] = torchflicker(0,-1/48,torchglowfull,64)
+  
+  end
+
+function monster3d(t, dx, dy, sx, sy)
+--local alfa = -V.atan2(V(global_x, global_y) - mapcenter) * 180 / math.pi
+--return 
+--  tilespatial(
+--    tilefreeform(tilexf(tiletransform(t, dx, dy, sx, sy), 0,0,1,1,0,alfa), ffidUpright),
+--    spMonst)
+
+  return tilespatial(tiletransform(t, dx, dy, sx, sy), spMonst)
+
+  --return tilemerge(
+--    tilespatial(adomtile("nterface/map", transAlpha), spMonst),
+    -- dx, dy, sx, sy), spMonst)
+--    )
+--    tilefreeform(tiletransform(t, dx, dy, sx, sy), ffidUpright),
+--    spMonst)
+  end
+
+function truetactical()
+  return tactical and mode ~= modeISO and mode ~= modeFPP and mode ~= modeTPP
+  end
+  
+function trueslant()
+  return (mode == modeTiles or mode == modeMini or mode == modeMed) and not tactical
+  end
+
+function colorwave(xs, ys, ts, color1, color2, ph)
+  if detaillevel < 50 then return colormix3(color1, color2, 0x80808080) end
+  local phase = global_y*ys + global_x * xs  + getticks() * ts + ph
+  local phasei = math.floor(128 + 127 * math.sin(phase))
+  phasei = math.floor((phasei+8)/17) * 17
+  -- local c = colormix3(color1, color2, 0x1010101 * phasei)
+  return colormix3(color1, color2, 0x1010101 * phasei)
+  end
+  
+function colorwall(W, fixed)
+  if not M then return W end -- happens when doing this just for monster memory
+
+  local on_lightning = 
+    M.overlay and M.overlay.effect_type == effecttypeids.ET_LIGHTNING_BOLT
+    and M.overlay.color and M.overlay.color >= 0 and M.overlay.effect_step
+    
+  if Global.special_level == speciallevelids.SPECIAL_INFINITY then
+    local phase = global_y*5 + global_x * 7 + getticks() / 120
+    if detaillevel < 50 then phase = 0 end
+    local phasei = (math.floor(phase) * 64) % 1536
+    W = tilecol(W, 0xFFFF0000, recMult)
+    W = tilecol(W, phasei, recHue)
+  elseif on_lightning then
+    local color = 0x80A0A0A0
+    local t = getticks()/1500.0 - on_lightning/25
+    t = t - math.floor(t)
+    if t < 0.06 then color = 0x80C0C0C0 end
+    W = tilecol(W, color, recGamma)
+--elseif overlay_now and overlay_now.type >= 0 then
+--  W = tilecol(W, 0x80606060, recGamma)
+  elseif Global.special_level == speciallevelids.FIRE_TOWER1 or 
+    Global.special_level == speciallevelids.FIRE_TOWER2 or 
+    Global.special_level == speciallevelids.FIRE_TOWER3 or 
+    Global.special_level == speciallevelids.FIRE_TEMPLE
+    then
+    local color = colorwave(0, 0.5, 1/750, 0xFFFFFFFF, 0xFFFFC000, (global_x % 2)/2)
+    color = bAND(color, 0xFFFFFCFF)
+    W = tilecol(W, color, recMult)
+  elseif Global.special_level == speciallevelids.WATER_DRAGON_LAIR then
+  
+    local color = colorwave(.9, .5, 1/360, 0xFFFFFFFF, 0xFFA0C0FF, 0)
+    
+    W = tilecol(W, color, recMult)
+    -- local phue = math.floor(64 * math.sin(phase))
+    -- W = tilecol(W, phue, recHue)
+    end
+  return W
+  end
+
+-- dy,sy
+-- sy = 1
+-- dy + (s.y-24)/s.y sy = 1
+-- dy = 1 - sy(s.y-24)/s.y
+-- dy = sy * 24/s.y + (1-sy)
+
+function addflicker(dec)
+  if dec == torchonly then
+    local i = (math.floor(getticks() / 60) + rpick("torchphase", {1,2,3,4,5,6,7,8})) % 8 + 1
+    dec = 
+      tilemerge(
+        tilespatial(tiletransform(
+          adomtile(mdd.."torch/frame_"..i, transAlpha),
+          0, 3/16, 1,1), spFlat + spIWall),
+        tilespatial(tiles[mdd.."fx_torch"].t, spIWall)
+        )
+
+    return tilemerge(dec, torchflickertab[math.floor(getticks() / 60) % 5])
+    end
+  return dec
+  end
+
+function idtoitempic(i, count, dir)
+
+  local ret = 0
+  
+  if dir and (i == itemids.I_ARROW or i == itemids.I_QUARREL) then
+    local fname = i == itemids.I_ARROW and "missiles/arrow" or "missiles/bolt"
+    if (dir % 2 == 1) then fname = fname.."_a" end
+    ret = tilefreeform(adomtile(fname, transAlpha), rotationff[dir])
+    ret = tiletransform(ret, 0, -1/6, 1, 1)
+    return ret
+    end
+  
+  function chkname(s)
+    if (ret==0) and gfx_exists(s) then
+      ret=adomtile(s, transAlpha, 0, 0)
+      end
+    end
+  
+  --print("i="..i.." count="..count)
+  if count>1 then chkname("items/items"..i) end  
+  if (ret==0) then chkname("items/item"..i) end
+  if ret == 0 then 
+    return tilerecolor(bord(gch(MA)), gco(MA))
+    end
+  if dir then
+    ret = tiletransform(ret, 0, -1/3, 1, 1)
+    end
+  return ret
+  end
+
+function xbanner(x)
+  if x < 6 then return (x%2 == 1) end
+  if x == 40 or x == 37 or (x > 42 and x%2 == 1) then return true end
+  
+  end
+  
+featfiles = {}
+featfiles[featureids.BEE_HIVE] = {"hive", spFlat + spIItem + spMonst, -.25}
+featfiles[featureids.ANT_HIVE] = {"hive_ant", spFlat + spIFloor + spFloor, 0}
+featfiles[featureids.CRUMPLED_HOLE] = {"hole_c", spFlat + spIFloor + spFloor, 0}
+featfiles[featureids.ID_PLANT3] = {"plant_3", spFlat + spIFloor + spIFloor, 0}
+featfiles[featureids.ID_PLANT2] = {"plant_2", spFlat + spIFloor + spIFloor, 0}
+featfiles[featureids.ID_PLANT1] = {"plant_1", spFlat + spIFloor + spIFloor, 0}
+featfiles[featureids.PLANT3] = {"plant_3", spFlat + spIFloor + spIFloor, 0}
+featfiles[featureids.PLANT2] = {"plant_2", spFlat + spIFloor + spIFloor, 0}
+featfiles[featureids.PLANT1] = {"plant_1", spFlat + spIFloor + spIFloor, 0}
+featfiles[featureids.PIT] = {"pit", spFlat + spFloor + spIFloor, 0}
+
+featfiles[featureids.EARTH_LOCK] = {"earth_o", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.ACT_EARTH_LOCK] = {"earth_c", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.FIRE_LOCK] = {"fire_o", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.ACT_FIRE_LOCK] = {"fire_c", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.WATER_LOCK] = {"water_o", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.ACT_WATER_LOCK] = {"water_c", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.AIR_LOCK] = {"air_o", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.ACT_AIR_LOCK] = {"air_c", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.MANA_LOCK] = {"mana_o", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.ACT_MANA_LOCK] = {"mana_c", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.LEVER_ON] = {"lever_c", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.LEVER_OFF] = {"lever_o", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.FORGE] = {"forge", spFlat + spIItem + spMonst, -.75}
+featfiles[featureids.MAGICAL_STATUE] = {"statue", spFlat + spIItem + spMonst, -.75}
+
+-- worldmap tiles
+
+worldtiles =  {}
+setmetatable(worldtiles, {__index = function () return {nil, 0} end})
+
+-- base types
+worldtiles[tileids.FOREST  ]        = { nil, 1}
+worldtiles[tileids.SWAMP   ]        = { nil, 2}
+worldtiles[tileids.HILLS   ]        = { nil, 3}
+worldtiles[tileids.HILL_SQUARE]     = { nil, 3} -- for now
+worldtiles[tileids.MOUNTAIN]        = { nil, 4}
+worldtiles[tileids.MOUNTAIN_SQUARE] = { nil, 4} -- for now
+worldtiles[tileids.HIGH_MOUNTAIN]   = { nil, 5}
+
+worldtiles[tileids.BASE_VILLAGE] = {"maps/world/decals/terinyo", 0} -- Terinyo
+worldtiles[tileids.FIRE_ENTRY] = {"maps/world/decals/toef", 0} -- Tower of Eternal Flames
+worldtiles[tileids.HV_ENTRY] = {"maps/world/decals/hmv", 0} -- High Mountain Village
+worldtiles[tileids.GRAVE_ENTRY] = {"maps/world/decals/grave", 0} -- Dwarven Graveyard
+worldtiles[tileids.PYRAMID_ENTRY] = {"maps/world/decals/pyramid", 0} -- Pyramid
+worldtiles[tileids.QUICKLING_ENTRY] = {"maps/world/decals/qtree", 1} -- Quickling Tree
+worldtiles[tileids.BUG_ENTRY] = {"maps/world/decals/bugtemple", 0} -- Bug Temple
+worldtiles[tileids.WATER_LAIR] = {"maps/world/decals/water_c", 0} -- Underwater Stairway
+worldtiles[tileids.HOME_ENTRY] = {"maps/world/decals/glade", 0} -- Old Barbarian's home
+worldtiles[tileids.SPECIAL_EXIT] = {"maps/world/decals/dc_enter", 0} -- should be 4!
+
+-- tunnels:
+
+-- small cave/way to HMV "small cave entrance"
+worldtiles[tileids.TOOL_ENTRY] = {"maps/world/decals/tunnel", 3}
+-- "extremely long stairway"
+worldtiles[tileids.RIFT_ENTRY2] = {"maps/world/decals/tunnel", e}
+-- Darkforge "non-descript tunnel"
+worldtiles[tileids.SMITH_ENTRY] = {"maps/world/decals/tunnel", 3} 
+-- Infinity Dungeon "tiny, strangely distorted cave entry"
+worldtiles[tileids.INFINITY_ENTRY] = {"maps/world/decals/tunnel", 3}
+-- the main dungeon
+worldtiles[tileids.ADOM_ENTRY] = {"maps/world/decals/tunnel", 3}
+-- shortcut to HMV
+worldtiles[tileids.HIDDEN_W_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- access to HMV "unremarkable cave" (?)
+worldtiles[tileids.HD_ENTRY] = {"maps/world/decals/tunnel", 4}
+
+-- caves:
+
+-- Assassin's Guild "Rather boring cave entry"
+worldtiles[tileids.TELEPORT_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- ancient library
+worldtiles[tileids.LIBRARY_ENTRY] = {"maps/world/decals/dungeon", 4}
+-- High King's tomb "a tiny stairway"
+worldtiles[tileids.PIRANHA_ENTRY] = {"maps/world/decals/dungeon2", 5}
+-- gremlin lair ("dark tunnel")
+worldtiles[tileids.GREMLIN_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- black druid dungeon
+worldtiles[tileids.BLACK_DRUID_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- "rift of incredible depth"
+worldtiles[tileids.RIFT_ENTRY] = {"maps/world/decals/rift", 0}
+-- puppy dungeon "small cave entry leading into the depths of the mountains"
+worldtiles[tileids.PUPPY_ENTRY] = {"maps/world/decals/dungeon3", 4}
+-- "an ancient stairway"
+worldtiles[tileids.TINY_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- "a strange scintillating cave entry"
+worldtiles[tileids.CAVE_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- "an unassuming cave entry" - tutorial dungeon
+worldtiles[tileids.BEGINNER_LEVEL_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- "an ominous huge cave entry evicting an icy gale of death and chaos"
+worldtiles[tileids.FROST_GIANT_JARL_ENTRY] = {"maps/world/decals/dungeon", 3}
+-- "a moldy dungeon entry"
+worldtiles[tileids.RANDOM_DUNGEON_ENTRY1] = {"maps/world/decals/dungeon", 3}
+-- "a shadowy dungeon entry"
+worldtiles[tileids.RANDOM_DUNGEON_ENTRY2] = {"maps/world/decals/dungeon", 3}
+-- "a sinister dungeon entry"
+worldtiles[tileids.RANDOM_DUNGEON_ENTRY3] = {"maps/world/decals/dungeon", 3}
+-- "an ancient dungeon entry"
+worldtiles[tileids.RANDOM_DUNGEON_ENTRY4] = {"maps/world/decals/dungeon", 3}
+-- "a putrid cave entry"
+worldtiles[tileids.RANDOM_DUNGEON_ENTRY5] = {"maps/world/decals/dungeon", 3}
+-- "a crumbling dungeon entry"
+worldtiles[tileids.RANDOM_DUNGEON_ENTRY6] = {"maps/world/decals/dungeon", 3}
+
+-- yet missing:
+
+-- bandit village
+worldtiles[tileids.BANDIT_ENTRY] = {"maps/world/decals/town", 1}
+-- Mad Minstrel's tiny hut
+worldtiles[tileids.MINSTREL_ENTRY] = {"maps/world/decals/clearing", 0}
+-- "ruins of an ancient city" (entrance to minotaur maze)
+worldtiles[tileids.RUINS_ENTRY] = {"maps/world/decals/ruins", 3}
+worldtiles[tileids.VOLCANO] = {"maps/world/decals/volcano", 0}
+worldtiles[tileids.STONE_CIRCLE] = {"maps/world/decals/circle", 3}
+worldtiles[tileids.UNICORN_ENTRY] = {"maps/world/decals/unicorn", 1}
+worldtiles[tileids.GLADE_ENTRY] = {"maps/world/decals/glade", 1}
+
+traptable = {
+  [colorids.COL_LIGHT_RED] = "_a",    -- alarm
+  [colorids.COL_GREEN] = "_ac",       -- acid
+  [colorids.COL_WHITE] = "_ar",       -- arrow
+  [colorids.COL_MAGENTA] = "_c",      -- chaos
+  [colorids.COL_BLUE] = "_ce",        -- teleport (ceiling)
+  [colorids.COL_RED] = "_f",          -- fire
+  [colorids.COL_YELLOW] = "_l",       -- light
+  [colorids.COL_LIGHT_CYAN] = "_pc",  -- covered pit
+  [colorids.COL_BROWN] = "_s",        -- spear
+  [colorids.COL_DARK_GRAY] = "_st",   -- stone
+  [colorids.COL_LIGHT_GREEN] = "_t",  -- teleport (normal)
+  [colorids.COL_LIGHT_BLUE] = "_w",   -- water
+}
+
+getFX = nil
+
+function buildFX(id, tactical)
+
+  local li = {}
+
+  li.head = {}
+  
+  local md = -0.25 -- shift diagonals vertically by 25% of tile
+  local mv = -0.75 -- shift verticals by
+  local mh = -0.75 -- shift horizontal by
+
+  if tactical then
+    md = 0
+    mv = 0
+    mh = 0
+    end
+
+  local lightning = id == effecttypeids.ET_LIGHTNING_BOLT
+  local fire = id == effecttypeids.ET_FIRE_BOLT
+  local ice = id == effecttypeids.ET_ICE_BOLT
+  local acid = id == effecttypeids.ET_ACID_BOLT
+  local death = id == effecttypeids.ET_DEATH_RAY
+  local stun = id == effecttypeids.ET_STUN_RAY
+  
+  local los = (lightning or stun)
+  
+  local folder
+  local keyword
+  if lightning then 
+    folder = "FX/area/lightning-ray/" 
+    keyword = "l"
+  elseif stun then 
+    folder = "FX/area/stun-ray/" 
+    keyword = "l"
+  elseif fire then 
+    folder = "FX/area/fire-ray/" 
+    keyword = "flame"
+  elseif acid then 
+    folder = "FX/area/acid-ray/" 
+    keyword = "acid"
+  elseif ice then 
+    folder = "FX/area/ice-ray/"
+    keyword = "ice"
+  elseif death then 
+    folder = "FX/area/death-ray/" 
+    keyword = "death"
+    end
+
+  local function mt1(til,dx,dy,sx,sy) 
+    t={} t[1]=tiletransform(til,dx,dy,sx,sy)
+    return t 
+    end
+
+  local function mt4(til, dx, dy) 
+    t={} 
+    t[1]=tiletransform(til, dx, dy, 1, 1)
+    t[2]=tiletransform(til, dx+1, dy, -1, 1)
+    t[3]=tiletransform(til, dx+1, dy+1, -1, -1)
+    t[4]=tiletransform(til, dx, dy+1, 1, -1)
+    return t
+    end
+
+  if los then
+    local til = adomtile(folder.."l_head", transAlpha)
+    li.head[0] = mt1(til, 1, 0+mh, -1, 1)
+    li.head[4] = mt1(til, 0, 0+mh, 1, 1)
+  
+    til = adomtile(folder.."l_head_v", transAlpha)
+    li.head[2] = mt1(til, 0, 0+mv, 1, 1)
+    li.head[6] = mt1(til, 0, 1+mv, 1, -1)
+  
+    til = adomtile(folder.."l_head_d", transAlpha)
+    li.head[1] = mt1(til, 1, 0+md, -1, 1)
+    li.head[3] = mt1(til, 0, 0+md, 1, 1)
+    li.head[5] = mt1(til, 0, 1+md, 1, -1)
+    li.head[7] = mt1(til, 1, 1+md, -1, -1)
+    
+  elseif fire then
+    local til = adomtile(folder.."spla_v", transAlpha)
+    local hd0 = mt4(til, 0, mv)
+    local hd1 = mt4(til, 0, md)
+    for k=0,7 do 
+      li.head[k] = (k%2 == 0) and hd0 or hd1
+      end
+    
+  elseif acid or death or ice then
+    local til = adomtile(folder..keyword.."_head", transAlpha)
+    local hd0 = mt4(til, 0, mv)
+    local hd1 = mt4(til, 0, md)
+    for k=0,7 do 
+      li.head[k] = (k%2 == 0) and hd0 or hd1
+      end
+    end
+
+  li.phases = {}
+  li.phases[0] = 64
+  li.phases[1] = 64
+  li.phases[2] = 48
+  li.phases[3] = 64
+  li.phases[4] = 64
+  li.phases[5] = 64
+  li.phases[6] = 48
+  li.phases[7] = 64
+  li.trail = {}
+  li.animphase = (los and 4 or 8)
+  
+  for u = 1,li.animphase do
+    li.trail[u] = {}
+    for d=0,7 do
+      li.trail[u][d] = {}
+      end
+
+    local prefix = folder..(los and "l_" or (keyword.."_"))
+    local suffix = (los and "" or "/frame0")
+
+    local pix = tiles[prefix.."h"..suffix..u].pic
+    for ph=0, 64 do 
+      til = tiletransform(
+          addtile(pix, 64-ph, 0, ph, 48, transAlpha), 1-ph/64, 0, ph/64, 1
+          )
+      li.trail[u][4][ph] = tiletransform(til, 0, 0+mh, 1, 1)
+      li.trail[u][0][ph] = tiletransform(til, 1, 0+mh, -1, 1)
+      end
+
+    pix = tiles[prefix.."v"..suffix..u].pic
+    for ph=0, 48 do 
+      til = tiletransform(
+          addtile(pix, 0, 48-ph, 64, ph, transAlpha), 0, 1-ph/48, 1, ph/48
+          )
+      li.trail[u][2][ph] = tiletransform(til, 0, 0+mv, 1, 1)
+      li.trail[u][6][ph] = tiletransform(til, 0, 1+mv, 1, -1)
+      end
+
+    -- 71 x 54 hard coded
+    pix = tiles[prefix.."d"..suffix..u].pic
+    for ph=0, 64 do 
+      til = 
+        tiletransform(
+          addtile(pix, 64-ph, 0, 7+ph, 54, transAlpha), (60-ph)/64, -3/48, (7+ph)/64, 54/48
+          )
+      li.trail[u][3][ph] = tiletransform(til, 0, 0+md, 1, 1)
+      li.trail[u][1][ph] = tiletransform(til, 1, 0+md, -1, 1)
+      li.trail[u][5][ph] = tiletransform(til, 0, 1+md, 1, -1)
+      li.trail[u][7][ph] = tiletransform(til, 1, 1+md, -1, -1)
+      end
+    end
+ 
+  li.splat = {}
+
+  if lightning or ice or acid or death or stun then
+
+    local splat = folder..(los and "l_spla_" or "splash_")
+  
+    til = adomtile(splat.."v", transAlpha)
+    
+    li.splat[40] = mt1(til, 0, mh+0, 1, 1)
+    li.splat[ 4] = mt1(til, 1, mh+0, -1, 1)
+    li.splat[31] = mt1(til, 0, md+0.5, 1, 1)
+    li.splat[13] = mt1(til, 1, md+0.5, -1, 1)
+    li.splat[57] = mt1(til, 0, md-0.5, 1, 1)
+    li.splat[75] = mt1(til, 1, md-0.5, -1, 1)
+  
+    til = adomtile(splat.."h", transAlpha)
+  
+    li.splat[26] = mt1(til, 0, mv-0.25, 1, 1)
+    li.splat[62] = mt1(til, 0, mv+1.75, 1, -1)
+    li.splat[35] = mt1(til,  .5, md-.75, 1, 1)
+    li.splat[17] = mt1(til, -.5, md-.75, 1, 1)
+    li.splat[53] = mt1(til,  .5, md+1.75, 1, -1)
+    li.splat[71] = mt1(til, -.5, md+1.75, 1, -1)
+  
+  else 
+  
+    local splat = folder..("spla_v")
+    local til = adomtile(splat, transAlpha)
+    
+    li.splat[40] = mt4(til, -0.5, mh+0)
+    li.splat[ 4] = mt4(til, 0.5, mh+0)
+
+    li.splat[62] = mt4(til, 0, mh+0.2)
+    li.splat[26] = mt4(til, 0, mh-0.5)
+    
+    li.splat[51] = mt4(til, -0.5, mh+0.7)
+    li.splat[73] = mt4(til, 0.5, mh+0.7)
+
+    li.splat[15] = mt4(til, 0.5, mh)
+    li.splat[37] = mt4(til, -0.5, mh)
+    end
+
+  if not tactical then
+    li.tactical = buildFX(id, true)
+    end
+
+  return li
+  end
+
+function build_getFX()
+  logprint2("BUILD FX")
+  
+  getFX = {}
+  
+  getFX[effecttypeids.ET_LIGHTNING_BOLT] = 
+    buildFX(effecttypeids.ET_LIGHTNING_BOLT, false)
+
+  getFX[effecttypeids.ET_FIRE_BOLT] = 
+    buildFX(effecttypeids.ET_FIRE_BOLT, false)
+
+  getFX[effecttypeids.ET_ICE_BOLT] = 
+    buildFX(effecttypeids.ET_ICE_BOLT, false)
+
+  getFX[effecttypeids.ET_ACID_BOLT] = 
+    buildFX(effecttypeids.ET_ACID_BOLT, false)
+
+  getFX[effecttypeids.ET_DEATH_RAY] = 
+    buildFX(effecttypeids.ET_DEATH_RAY, false)
+
+  getFX[effecttypeids.ET_STUN_RAY] = 
+    buildFX(effecttypeids.ET_STUN_RAY, false)
+
+  getFX[effecttypeids.ET_ENERGY_RAY] = getFX[effecttypeids.ET_STUN_RAY]
+
+  for k,v in pairs(getFX) do
+    logprint2("k = "..k.." v = "..tostring(getFX[k]))
+    end
+
+  logprint2("OK")
+  end
+
+function picktileset(M)
+
+  if not M then 
+    ts = tilesets.dungeon 
+    return
+    end
+
+  outdoor = (M.level_type == leveltypeids.SURFACE)
+  if Global.special_level == speciallevelids.HIDDEN_VILLAGE then outdoor = false end
+
+  ts = outdoor and tilesets.outdoor or tilesets.dungeon
+
+  if Global.special_level == speciallevelids.WILDERNESS then
+    ts = tilesets.world
+    end
+  
+  if Global.special_level == speciallevelids.WATER_DRAGON_LAIR then
+    ts = tilesets.water
+    end
+
+  if Global.special_level == speciallevelids.PIRANHA_LEVEL then
+    ts = tilesets.piranha
+    end
+
+  if Global.special_level == speciallevelids.FIRE_TOWER1 or 
+    Global.special_level == speciallevelids.FIRE_TOWER2 or 
+    Global.special_level == speciallevelids.FIRE_TOWER3 or 
+    Global.special_level == speciallevelids.FIRE_TEMPLE then
+    ts = tilesets.fire
+    end
+
+  if Global.special_level == speciallevelids.PYRAMID_LEVEL1 or 
+    Global.special_level == speciallevelids.PYRAMID_LEVEL2 or 
+    Global.special_level == speciallevelids.PYRAMID_LEVEL3 or
+    Global.special_level == speciallevelids.THE_ARENA then
+    ts = tilesets.sand
+    end
+
+  if Global.special_level == speciallevelids.ICY_PARLOR1 or 
+    Global.special_level == speciallevelids.ICY_PARLOR2 or
+    Global.special_level == speciallevelids.ICY_PARLOR3 or
+    Global.special_level == speciallevelids.ICY_PARLOR4 or
+    Global.special_level == speciallevelids.ICY_PARLOR5 or
+    Global.special_level == speciallevelids.ICY_PARLOR6 or
+    Global.special_level == speciallevelids.ICY_PARLOR7 or
+    Global.special_level == speciallevelids.ICY_PARLOR8 or
+    Global.special_level == speciallevelids.ICY_THRONE_ROOM or
+    Global.special_level == speciallevelids.ICY_DUNGEON then
+    ts = tilesets.ice
+    end
+
+  if Global.special_level == speciallevelids.UNICORN_GLADE then
+    ts = tilesets.corrupted
+    end
+
+  GrassTile = tilespatial(tstile("floors/grass", -1), spFlat + spFloor + spIFloor)
+  
+  emptypic = tiles[ts.dir.."walls/empty"].transNone.pic
+  if emptypic ~= 0 then
+    emptycol = getpixel(emptypic, 32, 32)
+    darkcol = colormix(emptycol, 0)
+  else
+    emptycol = 0
+    darkcol = 0
+    end  
+  
+  emptytile = tiles[ts.dir.."walls/empty"].t
+  
+  end
+
+function simulateSpItem(x)
+  return simulateSpMonster(tiletransform(x, 0, 0.25, 1, 1))
+   end
+
+noteye_config_variable("animatedwater", true, "ADOM: animate water?")
+waterframe = 0
+
+addtomenu(adommenu, "w", 
+  writechoicef(function()
+    return "animated water: "..boolonoff(animatedwater)
+    end),
+  function()
+    pickbool("animatedwater", not animatedwater)
+    end
+  )
+
+function xtileaux(ch, co, av, ba)
+
+  picmissing = false  
+
+  -- build FX before they are used (to prevent stuttering)
+  if not getFX then build_getFX() end
+
+  MA = scrget(S, global_x, global_y+map.top.y)
+  
+  M = mapcache[global_y][global_x]
+  Ch = choicearr[global_y][global_x]
+  if not Ch then
+    Ch = {}
+    choicearr[global_y][global_x] = Ch
+    end
+
+  picktileset(M)
+
+  -- print("x = "..global_x.." y = "..global_y)
+  --f = adommap(global_x, global_y)
+  --print("tile = "..f.tile)
+
+  local R = 0
+  local South = 0
+  local world = nil
+  local addceil = (mode == modeFPP or mode == modeTPP) and not outdoor
+  
+  -- something has not been recognized, show the ASCII symbol
+  local showascii = false
+  
+  if M.feature then showascii = true end
+  
+  local function addi(x, l)
+    if x == nil then 
+      logprint2("x = "..tostring(x))
+      logprint2(debug.traceback())
+      end
+    R = tilemerge(R, l and tilelayer(x, l) or x)
+    end
+  
+  local function adds(x, l)
+    South = tilemerge(South, l and tilelayer(x, l) or x)
+    end
+  
+  local function putfloor()
+  
+    if truetactical() then
+      R = tilespatial(tstile("tactical/floor", -1), ssFloor)
+    else
+      R = tilespatial(tstile("floors/floor", -1), ssFloor + spCeil)
+      end
+
+    addceil = false
+
+    if ts.floordecal then
+      local decal = rpick(ts.name.."/fd", ts.floordecal, ts.floordecalchance)
+      if decal ~= 0 then
+        addi(tilespatial(adomtile(decal, transAlpha), ssFloor))
+        end
+      end
+
+    if Global.special_level == speciallevelids.CASINO_LEVEL then
+      if global_y >= 4 and (global_y%2 == 0) then
+        if global_x == 6 then 
+          addi(adjtacx("decals/c_rug_e", spFlat + spIFloor + spFloor, 0))
+        elseif global_x == 36 then
+          addi(tiletransform(adjtacx("decals/c_rug_e", spFlat + spIFloor + spFloor, 0/48), 1,1,-1,-1))
+        elseif global_x > 6 and global_x < 36 then
+          addi(adjtacx("decals/c_rug", spFlat + spIFloor + spFloor, 0))
+          end
+        end
+      end
+    
+    R = colorwall(R)
+    end
+
+  local function putroad()
+    id = 15
+    if chktid(0,-1,tidroad) then id = id - 1 end
+    if chktid(0, 1,tidroad) then id = id - 2 end
+    if chktid(-1,0,tidroad) then id = id - 4 end
+    if chktid(1, 0,tidroad) then id = id - 8 end
+
+    local function roadfile(suffix)
+      return tilespatial(tstile("road/"..suffix, transAlpha), ssFloor)
+      end
+
+    R = roadfile(string.format("road_%d", id))
+    if chktid(1,1,tidgrass) then
+      addi(roadfile("c_SE"))
+      end
+    if chktid(1,-1,tidgrass) then
+      addi(roadfile("c_NE"))
+      end
+    if chktid(-1,1,tidgrass) then
+      addi(roadfile("c_SW"))
+      end
+    if chktid(-1,-1,tidgrass) then
+      addi(roadfile("c_NW"))
+      end
+    end
+
+  local function putdoor(horiz, closed)
+    if not ts.doorpic then
+      ts.doorpic = {}
+      tstile("features/door_H_c", transAlpha, 0, -24/64)
+      tstile("features/door_H_o", transAlpha, 0, -48/64)
+      tstile("features/door_V_c", transAlpha, 0, -36/64)
+      tstile("features/door_V_o", transAlpha, 0, -37/64)
+      ts.halfdoorpic = addtile0(tiles[ts.dir.."features/door_H_c"].pic, 0, 0, 32, 48, transAlpha)
+      end
+  
+    local dtype = "features/door_"..(horiz and "H" or "V")
+    local clos = closed and "_c" or "_o"
+    local dr = tiles[ts.dir..dtype..clos].scaled
+    if truetactical() then dr = tiletransform(dr, 0, 0.5, 1, 1) end
+    addi(colorwall(tilespatial(dr, spFlat)), 1)
+    
+    if closed then
+      R= tilemerge(R, 
+        colorwall(tilespatial(tilefreeform(tiles[ts.dir.."features/door_H_c"].t, centralize), 
+        horiz and (spWallN+spWallS+spIWallL) or (spWallE+spWallW+spIWallR)
+        )))
+    else    
+      R= tilemerge3(R, 
+        colorwall(tilespatial(tilefreeform(ts.halfdoorpic, halfdoorfp), 
+          horiz and (spWallW+spIWallR) or (spWallS+spIWallL)
+          )),
+        colorwall(tilespatial(tilefreeform(ts.halfdoorpic, halfdoorfp2), 
+          horiz and (spWallW+spIWallR) or (spWallS+spIWallL)
+          ))
+        )
+      end
+    end
+
+  local function addfogofwar()
+    if detaillevel < 60 then return end
+    local function sh2(x) return tilespatial(tstile("fog/"..x, transAlpha), ssFloor) end
+    if unknownat(0,1) then
+      adds(sh2("vert"))
+      end
+    if unknownat(0,-1) then
+      adds(tiletransform(sh2("vert"),1,1,-1,-1))
+      end
+    if unknownat(1,0) then
+      adds(tiletransform(sh2("horiz"),1,1,-1,-1))
+      end
+    if unknownat(-1,0) then
+      adds(sh2("horiz"))
+      end
+    if unknownat(1,1) and not unknownat(1,0) and not unknownat(0,1) then
+      adds(tiletransform(sh2("corner"),1,0,-1,1))
+      end
+    if unknownat(-1,1) and not unknownat(-1,0) and not unknownat(0,1) then
+      adds(tiletransform(sh2("corner"),0,0,1,1))
+      end
+    if unknownat(1,-1) and not unknownat(1,0) and not unknownat(0,-1) then
+      adds(tiletransform(sh2("corner"),1,1,-1,-1))
+      end
+    if unknownat(-1,-1) and not unknownat(-1,0) and not unknownat(0,-1) then
+      adds(tiletransform(sh2("corner"),0,1,1,-1))
+      end
+--  if unknownat(-1,1) and not unknownat(-1,0) and not unknownat(0,1) then
+--    adds(sh2("corner",1))
+--    end
+    end
+
+  local function addshadows()  
+    if knownwallat(0,1) and not truetactical() then 
+      South = tstile("walls/wall_S", transAlpha)
+      if detaillevel >= 20 then
+        if not wallisat(-1, 1) then South = tilemerge(South, tstile("walls/c_out_NW", transAlpha)) end
+        if not wallisat(1, 1) then South = tilemerge(South, tstile("walls/c_out_NE", transAlpha)) end
+        end
+      South = tilelayer(tilespatial(South, spFlat), 1)
+      South = colorwall(South)
+      end
+
+    if detaillevel < 70 then return end
+    
+    local function sh(x) 
+      return colorwall(tilespatial(tstile("shadows/"..x, transAlpha), ssFloor))
+      end  
+
+    if knownwallat(0,1) then
+      addi(sh("shadow_S"))
+      end
+    if knownwallat(0,-1) and not truetactical() and (ts == tilesets.water or (
+      chktid(0, 0, tidgrass) and 
+      not chktid(0, -1, tidgrass) and not chktid(0, -1, tidwater) and not chktid(0, -1, tidhills)))
+    then 
+      addi(tilespatial(tstilesc("decals/wall_g_1",transAlpha, 0, -40/48), spFlat))
+    elseif knownwallat(0,-1) then
+      addi(sh("shadow_N"))
+      end
+    if knownwallat(1,0) then
+      addi(sh("shadow_E"))
+      end
+    if knownwallat(-1,0) then
+      addi(sh("shadow_W"))
+      end
+    if knownwallat(1,1) and not knownwallat(1,0) and not knownwallat(0,1) then
+      addi(sh("c_SE"))
+      end
+    if knownwallat(1,-1) and not knownwallat(1,0) and not knownwallat(0,-1) then
+      addi(sh("c_NE"))
+      end
+    if knownwallat(-1,1) and not knownwallat(-1,0) and not knownwallat(0,1) then
+      addi(sh("c_SW"))
+      end
+    if knownwallat(-1,-1) and not knownwallat(-1,0) and not knownwallat(0,-1) then
+      addi(sh("c_NW"))
+      end
+      
+    end
+
+  local function addwater()
+    local uanimwater = animatedwater and (ts ~= tilesets.world)
+    
+    id = 15
+    if chktid(0,-1,tidnearwater) then id = id - 1 end
+    if chktid(0, 1,tidnearwater) then id = id - 2 end
+    if chktid(-1,0,tidnearwater) then id = id - 4 end
+    if chktid(1, 0,tidnearwater) then id = id - 8 end
+    
+    local function waterfile(suffix)
+      tstile("water/"..suffix, transAlpha)
+      return tilespatial(tiles[ts.dir.."water/"..suffix].t, spFlat + spFloor + spIFloor)
+      end
+
+    if (not uanimwater) and not ts.watertab then
+      ts.watertab = {}
+      for id=0,15 do 
+        local fmt = "water/water_%d"
+        ts.watertab[id] = 
+          tilespatial(tstile(string.format(fmt, id), transAlpha), spFlat + spFloor + spIFloor)
+        end
+      end
+
+    if not ts.cornertab then
+      ts.cornertab = {}
+      ts.cornertab[16] = waterfile("c_NW")
+      ts.cornertab[17] = waterfile("c_NE")
+      ts.cornertab[18] = waterfile("c_SW")
+      ts.cornertab[19] = waterfile("c_SE")
+      end
+    
+    if uanimwater and not ts.watertaba then
+      ts.watertaba = {}
+      for x=0,15 do
+        local fmt = "water/water_a/water_%02d"
+        ts.watertaba[x] = 
+          tilespatial(tstile(string.format(fmt, x+1), transAlpha), spFlat + spFloor + spIFloor)
+        end
+      ts.watertabb = {}
+      ts.watertabb[0] = 0
+      for x=1,15 do
+        local fmt = "water/water_a/border_%d"
+        ts.watertabb[x] = 
+          tilespatial(tstile(string.format(fmt, x), transAlpha), spFlat + spFloor + spIFloor)
+        end
+      if ts == tilesets.ice then
+        ts.icetab = {}
+        ts.icetab[0] = 0
+        for x=0,15 do
+          local fmt = "ice/ice_%d"
+          ts.icetab[x] = 
+            tilespatial(tstile(string.format(fmt, x), transAlpha), spFlat + spFloor + spIFloor)
+          end
+        end
+      end
+
+    if uanimwater then
+      if ts.icetab == nil or M.tile == tileids.WATER_SQUARE then
+        R = tilemerge(ts.watertaba[waterframe % 16], ts.watertabb[id])
+      else
+        R = ts.watertaba[waterframe % 16]
+        end
+      if R == 0 then R = ts.watertab[id] end
+    else
+      R = ts.watertab[id]
+      end
+      
+    if chktid(0,-1,tidwater) then
+      if chktid(-1,0,tidwater) and not chktid(-1,-1,tidwater) and not unknownat(-1,-1) then
+        addi(ts.cornertab[16])
+        end
+      if chktid(1,0,tidwater) and not chktid(1,-1,tidwater) and not unknownat(1,-1) then
+        addi(ts.cornertab[17])
+        end
+      end
+
+    if chktid(0,1,tidwater) then
+      if chktid(-1,0,tidwater) and not chktid(-1,1,tidwater) and not unknownat(-1,1) then
+        addi(ts.cornertab[18])
+        end
+      if chktid(1,0,tidwater) and not chktid(1,1,tidwater) and not unknownat(1,1) then
+        addi(ts.cornertab[19])
+        end
+      end
+
+    if M.tile == tileids.ICE_SQUARE then
+      if ts.icetab then
+        -- ice layer on top of water
+        R = tilemerge(R, ts.icetab[id])
+      else
+        -- ice floe on top of water
+        addi(tilespatial(tstile("features/ice", transAlpha), spFlat + spFloor + spIFloor))
+        end
+      end
+
+    if M.tile == tileids.BRIDGE then
+      addi(tilespatial(tstile("features/bridge", transAlpha), spFlat + spFloor + spIFloor))
+      end
+
+    end
+
+  local function addblood()
+    local size = "s"
+    if not M.blood then return end
+    if violencelevel < 75 then return end
+    if M.blood.level >= 4 then
+      size = "l"
+    elseif M.blood.level >= 2 then
+      size = "m"
+      end
+    local count = math.min(3, M.blood.level / 2)
+    for c = 0, count do
+        local decal = rpick("blood"..c, {"_1", "_2", "_3", "_4", "_5", "_6"})
+        if (M.blood.visibility == 100) then
+          addi(colorwall(adjtacx("decals/blood/b_"..size..decal, spFlat + spIFloor + spFloor, 0)))
+        else
+          -- visibility factor, starts with the value 1.0 and ends with 0.0
+          local factor = M.blood.visibility / 100.0
+          local col = bAND(factor * 0xFF000000, 0xFF000000)
+          col = bOR(col, bAND(factor * 0x00FF0000, 0x00FF0000))
+          col = bOR(col, bAND(factor * 0x0000FF00, 0x0000FF00))
+          col = bOR(col, bAND(factor * 0x000000FF, 0x000000FF))
+--print(string.format("col %X", col))
+          addi(colorwall(tilecol(adjtacx("decals/blood/b_"..size..decal, spFlat + spIFloor + spFloor, 0), col, recMult)))
+          end
+      end
+    end
+  
+  local function addgrass()
+    R = tilespatial(tstile("floors/grass", -1), spFlat + spFloor + spIFloor)
+    end
+  
+  local function addhills()
+    local id = 15
+    if chktid(0,-1,tidhills) then id = id - 1 end
+    if chktid(0, 1,tidhills) then id = id - 2 end
+    if chktid(-1,0,tidhills) then id = id - 4 end
+    if chktid(1, 0,tidhills) then id = id - 8 end
+    
+    addi(tiles["maps/world/hills/hills_"..id].land, 1)
+    end
+  
+  local function addmountains()
+    local id = 15
+    if chktid(0,-1,tidmount) then id = id - 1 end
+    if chktid(0, 1,tidmount) then id = id - 2 end
+    if chktid(-1,0,tidmount) then id = id - 4 end
+    if chktid(1, 0,tidmount) then id = id - 8 end
+    
+    addi(tiles["maps/world/mount/mount_"..id].land, 1)
+    end
+  
+  local function addswamp()
+    if not Ch.forest then
+      Ch.forest = math.random(1,3)
+      end
+    local s = "maps/world/decals/swamp_"..Ch.forest
+    addi(tiles[s].land, 1)
+    end
+  
+  -- adjtac:
+  -- in the true tactical mode, rescale i for the tactical mode
+  -- otherwise, return tilespatial(i, spatial)
+  local function adjtac0(i, spatial)
+    return tiletransform(i, 0, .125, 1, .75)
+    end
+
+  function tilespatialTPP(x, spat)
+    if bAND(spat, spItem) then return simulateSpItem(x)
+    elseif bAND(spat, spMonst) then return simulateSpMonst(x)
+    elseif bAND(spat, spFree) then return x
+    end
+    end
+
+  local adjtac = 
+    (truetactical() and adjtac0) or 
+    (mode == modeTPP or mode == modeFPP) and tilespatialTPP or
+    tilespatial
+  
+  function adjtacx(filename, spat, dy)
+    local img = tstilesc(filename, transAlpha, 0, 0)
+    if truetactical() then 
+      return adjtac0(img)
+    elseif trueslant() then  
+      return tiletransform(img, 0, dy or 0, 1, 1)
+    elseif mode == modeFPP or mode == modeTPP then 
+--    if bAND(spat, spItem) then
+--      print("-- sim spItem-- ("..global_x..","..global_y..")")
+--      return simulateSpItem(tstile(filename))
+--      end
+      return tilespatial(tstile(filename), spat)
+    elseif mode == modeISO then
+      return tilespatial(img, spat)
+    else 
+      return img
+      end
+    end
+
+  function adomitem(x)
+    return colorwall(adjtac(x, spItem + spIItem + spFlat))
+    end
+
+  -- checks if decals should be added to the character/monster  
+  function addchardecal()
+    if detaillevel < 95 then return false end
+    if not tidgrass(M.tile) then return false end
+    if not M.is_lit then return false end
+    if M.item then return false end
+    if M.feature and ((M.feature == featureids.STAIR_DOWN1) or
+	                  (M.feature == featureids.STAIR_DOWN2) or
+	                  (M.feature == featureids.STAIR_UP1) or
+                      (M.feature == featureids.STAIR_UP2)) then
+      return false end
+    return true
+    end
+
+  local shadows = 1
+  local fogofwar = 1
+  
+  if not M.is_lit and M.tile then
+    -- known tile that isn't lit
+    R = tilemerge(
+      tilespatial(tilefill(darkcol), spFlat + spIFloor),
+      outdoor and 0 or tilespatial(tileshade(darkcol), spWall)
+      )
+    addceil = false
+  
+  elseif (not M.tile) and knownwallat(0, 1) and trueslant() then
+    R = emptytile
+    R = colorwall(R)
+    shadows = nil
+  
+  elseif not M.tile then
+    R = tilemerge(
+      tilespatial(tilefill(darkcol), spFlat + spIFloor),
+      outdoor and 0 or tilespatial(tileshade(darkcol), spWall + spWallTop + spWallBot)
+      )
+    addceil = false
+    shadows = nil
+    fogofwar = nil
+
+  elseif Global.special_level == speciallevelids.WILDERNESS and usedrakalormap then
+    world = true
+    
+    if not Ch.world then
+      local img = tiles["mapTest3"].transNone.pic
+      local imgsiz = imggetsize(img)
+      logprint2("xy = "..imgsiz.x..","..imgsiz.y)
+
+      logprint2("gx = "..global_x.." gy="..global_y.." img="..img)
+      Ch.world = 
+        addtile0(img, 20 * global_x, 245 + 32 * global_y, 20, 32, -1)
+
+      logprint2("wld = "..Ch.world)
+      end
+
+    R = Ch.world
+    
+    shadows = nil
+    
+  elseif Global.special_level == speciallevelids.WILDERNESS then
+    
+    world = true
+    
+    if not Ch.plainn then
+      Ch.plainn = math.random(1,4)
+      end
+    local s = "maps/world/plains/grass_"..Ch.plainn
+    R= tiles[s].land
+    
+    handled = M.tile == tileids.PLAINS
+    
+    if worldtiles[M.tile][2] == 1 then
+      handled = true
+      if not Ch.forest then
+        Ch.forest = math.random(1,3)
+        end
+      local s = "maps/world/decals/forrest_"..Ch.forest
+      addi(tiles[s].land, 1)
+      end
+  
+    if worldtiles[M.tile][2] == 2 then
+      handled = true
+      addswamp()
+      end
+  
+    if worldtiles[M.tile][2] == 3 then
+      handled = M.tile == tileids.HILLS
+      addhills()
+      end
+
+    if worldtiles[M.tile][2] == 4 then
+      handled = true
+      addmountains()
+      end
+
+    if worldtiles[M.tile][2] == 5 then
+      handled = true
+      id = 15
+      if chktid(0,-1,tidhmount) then id = id - 1 end
+      if chktid(0, 1,tidhmount) then id = id - 2 end
+      if chktid(-1,0,tidhmount) then id = id - 4 end
+      if chktid(1, 0,tidhmount) then id = id - 8 end
+      
+      addi(tiles["maps/world/tmount/tmount_"..id].land, 1)
+      end
+
+    if tidwater(M.tile) then
+      handled = true
+      addwater()
+      end
+
+    if tidroad(M.tile) then
+      handled = true
+      id = 15
+      if chktid(0,-1,tidroad) then id = id - 1 end
+      if chktid(0, 1,tidroad) then id = id - 2 end
+      if chktid(-1,0,tidroad) then id = id - 4 end
+      if chktid(1, 0,tidroad) then id = id - 8 end
+      
+      addi(tilespatial(Roads[id], spFlat + spFloor + spIFloor), 1)
+      end
+    
+    if worldtiles[M.tile][1] then
+      handled = true
+      local s = worldtiles[M.tile][1]
+      addi(tilespatial(tiles[s].land, spFloor + spIFloor + spFlat), 1)
+
+    elseif (M.tile == tileids.ICE_QUEEN_ENTRY) then
+      handled = true
+      local s = "maps/world/decals/ice_storm"
+      if Global.is_ice_palace_visible then
+        s = "maps/world/decals/ice_palace"
+        end
+      addi(tilespatial(tiles[s].land, spFloor + spIFloor + spFlat), 1)
+
+    elseif not handled then
+      showascii = true
+      end
+      
+    shadows = nil
+
+  elseif knownwallat(0,0) and truetactical() then
+    R = emptytile
+    
+    if detaillevel >= 30 then
+    
+      local mdt = "maps/dungeon/tactical/"
+      local eright = not wallisat(1,0)
+      local eleft  = not wallisat(-1,0)
+      local eleft  = not wallisat(-1,0)
+      
+      local wallpic = colorwall(adomtile(mdt.."wall", transAlpha))
+      local cornpic = colorwall(adomtile(mdt.."corner_out", transAlpha))
+      local cornpic2 = colorwall(adomtile(mdt.."corner_in", transAlpha))
+      
+      if not wallisat(0, -1) then 
+        addi(wallpic)
+        end
+      
+      if not wallisat(0, 1) then 
+        addi(tiletransform(wallpic,1,1,-1,-1))
+        end
+      
+      if not wallisat(1, 0) then 
+        addi(tilefreeform(wallpic, turnright))
+        if not wallisat(0, -1) then
+          addi(cornpic)
+          end
+        if not wallisat(0, 1) then
+          addi(tiletransform(cornpic,0,1,1,-1))
+          end
+      else
+        if wallisat(0,-1) and not wallisat(1,-1) then
+          addi(cornpic2)
+          end
+        if wallisat(0,1) and not wallisat(1,1) then
+          addi(tiletransform(cornpic2,0,1,1,-1))
+          end
+        end
+      
+      if not wallisat(-1, 0) then 
+        addi(tilefreeform(wallpic, turnleft))
+        if not wallisat(0, -1) then
+          addi(tiletransform(cornpic,1,0,-1,1))
+          end
+        if not wallisat(0, 1) then
+          addi(tiletransform(cornpic,1,1,-1,-1))
+          end
+      else
+        if wallisat(0,-1) and not wallisat(-1,-1) then
+          addi(tiletransform(cornpic2,1,0,-1,1))
+          end
+        if wallisat(0,1) and not wallisat(-1,1) then
+          addi(tiletransform(cornpic2,1,1,-1,-1))
+          end
+        end
+      end
+    
+    shadows = nil
+
+  elseif knownwallat(0,0) then
+
+    local wall = nil
+    local xwall = false
+    
+    wall = tstile("walls/wall_N", -1)
+
+    if not fppwalls[wall] then
+      fppwalls[wall] = addtile0(tspic("walls/wall_N"), 0, 14, 64, 34, -1)
+      end                                                         
+
+    wall3 = fppwalls[wall]
+    
+    if wallisat(0,1) or truetactical() then 
+      wall = emptytile
+    
+    else
+      xwall = true
+      end
+
+    if detaillevel >= 20 then
+      if wallisat(0,1) then 
+        if not wallisat(-1, 0) then 
+          if wallisat(-1, 1) then
+            wall = tilemerge(wall, tstile("walls/c_in_SE", transAlpha))
+          else
+            wall = tilemerge(wall, tstile("walls/wall_E", transAlpha))
+            end
+        elseif not wallisat(-1, 1) then 
+          wall = tilemerge(wall, tstile("walls/c_in_NE", transAlpha)) 
+          end
+        if not wallisat(1, 0) then 
+          if wallisat(1, 1) then
+            wall = tilemerge(wall, tstile("walls/c_in_SW", transAlpha))
+          else
+            wall = tilemerge(wall, tstile("walls/wall_W", transAlpha))
+            end
+        elseif not wallisat(1, 1) then 
+          wall = tilemerge(wall, tstile("walls/c_in_NW", transAlpha)) 
+          end
+      
+      else
+        if not wallisat(-1, 0) then wall = tilemerge(wall, tstile("walls/c_out_SW", transAlpha)) end
+        if not wallisat(1, 0) then wall = tilemerge(wall, tstile("walls/c_out_SE", transAlpha)) end
+        end
+      end
+    
+    wall = tilemerge(tilespatial(wall, spFlat), tilemerge(tilespatial(wall3, spWall+spIWall), tilespatial(emptytile, spICeil+spWallBot+spWallTop)))
+    
+    if detaillevel >= 40 then
+      if Global.special_level == speciallevelids.CASINO_LEVEL and xwall and xbanner(global_x) then
+        wall = tilemerge(wall, adjtacx("decals/c_banner", spFlat + spWall + spIWall))
+
+      elseif Global.special_level == speciallevelids.ICY_THRONE_ROOM then
+
+        -- only select the columns in the middle of the room
+        if not wallisat(0, -1) and not wallisat(0, 1) then
+          wall = tilemerge(wall, adjtacx("walls/column", spFlat + spWall + spIWall, -12/48))
+          end
+
+      elseif ts.walldecal then
+
+        local wdec = rpick(ts.name.."/wd", ts.walldecal, ts.walldecalchance)
+        local wdec3 = rpick(ts.name.."/wdf", ts.fppwalldecal, ts.walldecalchance)
+
+        -- use extinguished torch if area below is not lit
+        if xwall and wdec == torchonly and not adom_nelib_draw_map(global_x, global_y + 1).is_lit then
+          wall = tilemerge(wall, adjtacx("decals/torch_e", spFlat + spWall + spIWall))
+        else
+          if xwall then wall = tilemerge(wall, addflicker(wdec)) end
+          wall = tilemerge(wall, wdec3)
+          end
+        end
+      end
+      
+    wall = colorwall(wall)
+    R = wall
+    shadows = nil
+  elseif tidfloor(M.tile) then
+    putfloor()
+  elseif M.tile == tileids.ROAD then
+    putroad()
+  elseif tidgrass(M.tile) then
+    addgrass()
+    if ts ~= tilesets.corrupted then
+      local decal = rpick("grassdecal", {"_1", "_2", "_3", "_4", "_5", "_6", "_7", "_8", "_9", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+      if decal ~= 0 then
+        local tile = tstile("decals/grass"..decal, transAlpha)
+        local sp3 = (decal == "_3" or decal == "_4") and spItem or spFloor
+        addi(tilespatial(tile, spFlat + sp3 + spIItem))
+        end
+      end
+
+  elseif M.tile == tileids.HILL_SQUARE then
+    addgrass()
+    -- addhills()
+    addi(tilespatial(tstile("features/hill", transAlpha), spFlat + spFloor + spIFloor))
+  elseif M.tile == tileids.MOUNTAIN_SQUARE then
+    addgrass() addmountains()
+  elseif M.tile == tileids.SWAMP_SQUARE then
+    addgrass() 
+    -- addswamp()
+    addi(tilespatial(tstile("features/swamp", transAlpha), spFlat + spFloor + spIFloor))
+  elseif M.tile == tileids.OPEN_DOOR or tiddoor(M.tile) then
+    putfloor()
+    putdoor(knownwallat(1,0) or knownwallat(-1,0), tiddoor(M.tile))
+    
+  elseif tidwater(M.tile) then
+    addwater()
+
+  elseif M.tile == tileids.BRIDGE_SQUARE then
+    addi(tilespatial(tstile("features/bridge_1", -1), spFlat + spFloor + spIFloor))
+
+  elseif M.tile == tileids.SWAMP_SQUARE or M.tile == tileids.SWAMP then
+    R = tilerecolor(GrassTile, 0xC0C0)
+
+  elseif M.tile == tileids.HILLS_SQUARE or M.tile == tileids.HILLS then
+    R = tilerecolor(GrassTile, 0xFFFFFF)
+
+  elseif M.tile == tileids.FOREST then
+    R = tilerecolor(GrassTile, 0x008000)
+
+  else
+    R = tilerecolor(GrassTile, 0xC000C0)
+    addi(tilerecolor(bord(gch(MA)), gco(MA)))
+    end
+    
+  if addceil then
+    if outdoor then 
+      addi(tilespatial(tstile("water/water_0", -1), spCeil))
+    else
+      addi(tilespatial(tstile("floors/floor", -1), spCeil))
+      end
+    end
+  
+  if M.blood then addblood() end
+
+  if shadows then addshadows() end
+  
+  if not Global.is_cursor_active and mapon and mouseposmap and V(global_x, global_y) == mouseposmap then
+    addi(cursor_tile, 1)
+    end
+
+  if M.feature then
+  
+    local f = M.feature
+
+    if featfiles[f] then
+      showascii = false
+      local m = featfiles[f]
+      addi(adjtacx("features/"..m[1], m[2], m[3]), 1)
+  
+    elseif f == featureids.OPEN_TRAP then
+      local t = traptable[M.feature_trap_color]
+      if t then
+        showascii = false
+        addi(adjtacx("features/trap/trap"..t, spFlat + spIFloor + spFloor))
+        end
+
+    elseif f == featureids.STAIR_UP1 or f == featureids.STAIR_UP2 then
+      showascii = false
+      if Global.special_level == speciallevelids.STAIRWAY_FLAME_WALL_LEVEL and not Global.is_flame_wall_gone then
+        local i = (math.floor(getticks() / 75) + rpick("fwall", {1,2,3,4,5,6,7,8})) % 8 + 1
+        addi(colorwall(adjtacx("features/flame/fwall0"..i, spFlat + spIItem + spMonst, -16/48), true), 1)
+      else
+        addi(colorwall(adjtacx("features/stairs_u", spFlat + spIItem + spMonst, -16/48), true), 1)
+      end
+    
+    elseif f == featureids.STAIR_DOWN1 or f == featureids.STAIR_DOWN2 then
+      showascii = false
+
+      if Global.special_level == speciallevelids.PORTAL_LEVEL and not Global.is_portal_free then
+        addi(colorwall(adjtacx("features/portal", spFlat + spIFloor + spFloor, -8/48)))
+      else
+        addi(colorwall(adjtacx("features/stairs_d", spFlat + spIFloor + spFloor, -8/48)))
+      end
+
+    elseif f == featureids.ALTAR then
+      showascii = false
+      local altar
+      if M.feature_color == colorids.COL_WHITE then
+        altar = "features/altar_l"
+      elseif M.feature_color == colorids.COL_LIGHT_GRAY then
+        altar = "features/altar_n"
+      else
+        altar = "features/altar_c"
+      end
+      addi(adjtacx(altar, spFlat + spIFloor + spFloor))
+  
+    elseif f == featureids.GAMBLING_MACHINE or f == featureids.BAD_GAMBLING_MACHINE then
+      showascii = false
+      local bf = adjtacx("features/bling", spFlat + spIItem + spMonst, -.75)
+      bf = tilecol(bf, blinkcolor(), recPurple)
+      addi(bf, 1)
+  
+    elseif f == featureids.TREE then
+      showascii = false
+      local dir = "maps/outdoor/"
+      if ts == tilesets.corrupted then dir = ts.dir end
+      local treedata = {
+        -- direction = rpick("treecr", {0,4}),
+        s = dir.."features/tree_t"..rpick("treet", {"","_2","_3","_4"}),
+        tree = true
+        }
+      addi(adommon(treedata), 1)
+  
+    elseif f == featureids.GRAVE then
+      showascii = false
+      addi(adjtacx("features/grave", spFlat + spIItem + spMonst, -.6), 1)
+  
+    elseif f == featureids.POOL then
+      showascii = false
+      local pool = "features/pool_"..M.feature_color_pool
+      addi(adjtacx(pool, spFlat + spIFloor + spFloor))
+
+    elseif f == featureids.CHAOS_GATE then
+      showascii = false
+      local gate
+      if M.feature_color == colorids.COL_DARK_GRAY then
+        gate = "features/cgate_c"
+      else
+        gate = "features/cgate"
+      end
+      addi(adjtacx(gate, spFlat + spIItem + spMonst, -.75))
+
+    elseif f == featureids.WEB then
+      showascii = false
+  
+      end
+    
+    end
+  
+  if fogofwar then addfogofwar() end
+  
+  if gridmode >= 1 then
+    if gridmode == 2 then
+      addi(tilespatial(MediumFrameTile, spFlat + spFloor + spIFloor), 1)
+    elseif gridmode ~= 3 then
+      addi(tilespatial(WeakFrameTile, spFlat + spFloor + spIFloor), 1)
+    else
+      addi(tilespatial(FrameTile, spFlat + spFloor + spIFloor), 1)
+      end
+    if gridmode == 4 and (global_x+global_y)%2 == 0 then
+      addi(tilespatial(CheckTile, spFlat + spFloor + spIFloor), 1)
+      end
+    end
+
+  if Global.asked_for_direction and global_x >= PCData.x-1 and global_x <= PCData.x+1 and
+    global_y >= PCData.y-1 and global_y <= PCData.y+1 and gridmode < 4 then
+    local function signum(x)
+      if x>0 then return 1 elseif x<0 then return -1 else return 0 end
+      end
+    addi(tilespatial(DirectionTile, spFlat + spFloor + spIFloor), 1)
+    if mouseposmap then
+      local dx = signum(mouseposmap.x - PCData.x)
+      local dy = signum(mouseposmap.y - PCData.y)
+      if global_x == PCData.x + dx and global_y == PCData.y + dy then
+        local phase = math.floor(math.sin(getticks() / 100) * 10 + .5) / 64
+        addi(tilespatial(adomtile("nterface/cursor/grid_highlight"), spFlat + spFloor + spIFloor), 1)
+        if dx ~= 0 and dy ~= 0 then
+          addi(tilespatial(
+            tiletransform(
+              adomtile("nterface/cursor/arrow_d"), (1+dx)/2 + phase*dx, (1-dy)/2 + phase*dy, -dx, dy),
+              spFlat + spFloor + spIFloor), 2)
+        elseif dy ~= 0 then
+          addi(tilespatial(
+            tiletransform(
+              adomtile("nterface/cursor/arrow_v"), 0, (1-dy)/2 + phase*dy, 1, dy),
+              spFlat + spFloor + spIFloor), 2)
+        elseif dx ~= 0 then
+          addi(tilespatial(
+            tiletransform(
+              tilefreeform(adomtile("nterface/cursor/arrow_v"), turnright), (1+dx)/2 + phase*dx, 0, -dx, 1),
+              spFlat + spFloor + spIFloor), 2)
+          end
+        end
+      end
+    end
+  
+  if picmissing or R==0 then
+    addi(tilespatial(tilefill(0), spIItem + spFloor + spFlat))
+    showascii = true
+    end
+    
+  if showascii then
+    addi(tilespatial(tilerecolor(bord(gch(MA)), gco(MA)), spIItem + spFlat + spFloor))
+    end
+
+  if M.item then
+    addi(adomitem(idtoitempic(M.item, M.item_count)), 1)
+    end
+
+  if M.temporary_item then
+    addi(adomitem(idtoitempic(M.temporary_item.item, M.temporary_item.item_count)), 1)
+    end
+
+  if M.being_type == beingtypes.PC and not PCData.is_blind and 
+    not (mode == modeFPP and not Global.is_cursor_active)
+  then
+    PCData.being_type = beingtypes.PC
+    local char = adommon(PCData)
+    if Global.special_level == speciallevelids.WILDERNESS then
+      char = tiletransform(char, .25,.25,.5,.5)
+      end
+
+    -- darken the image if the PC is in darkness
+    if not M.is_lit then
+      char = tilecol(char, 0xFFAAAAAA, recMult)
+      end
+
+    local c1 = char
+    char = applymoveshift(char, "player", true)
+
+    addi(char, 1)
+    if c1==char and addchardecal() then addi(adomgrass(), 1) end
+    end
+
+  if M.monster then
+    M.monster.being_type = M.being_type
+    local char = adommon(M.monster)
+    local c1 = char
+    char = applymoveshift(char, M.monster.uid, true)
+    addi(char, 1)
+    if c1==char and addchardecal() then addi(adomgrass(), 1) end
+    end
+
+  if M.temporary_being then
+    local race = pcracenames[PCData.race + 1]
+    if M.temporary_being.type == temporarybeingtypes.TEMPORARY_BEING_PRINCE then
+      M.temporary_being.s = "NPC/misc/"..race.."_pr"
+    elseif M.temporary_being.type == temporarybeingtypes.TEMPORARY_BEING_PRIEST then
+      M.temporary_being.s = "NPC/misc/"..race.."_p"
+      M.temporary_being.is_ghost = true
+    elseif M.temporary_being.type >= 0 then
+      M.temporary_being.s = "NPC/"..M.temporary_being.type
+      end
+    local char = adommon(M.temporary_being)
+    addi(char, 1)
+    if addchardecal() then addi(adomgrass(), 1) end
+    end
+
+  if M.feature == featureids.WEB then
+    if cachesafe(-1,0).feature == featureids.WEB then
+      addi(tilespatial(tiletransform(tstilesc("features/web", transAlpha, 0, 0), -0.5, 0, 1, 1), spFlat), 1)
+      end
+    addi(tilespatial(tstilesc("features/web", transAlpha, 0, 0), spFlat + spIFloor + spFloor + spWall), 1)
+    end
+
+  if M.feature == featureids.TREE then
+    local dir = "maps/outdoor/"
+    if ts == tilesets.corrupted then dir = ts.dir end
+    local treedata = {
+      -- direction = rpick("treecr", {0,4}),
+      s = dir.."features/tree_c"..rpick("treec", {"","_2","_3"}),
+      tree = true
+      }
+      
+    addi(adommon(treedata), 1)
+    end
+
+  -- add animation(s) on top
+  local anim = render_anims(global_x, global_y, M, "location")
+  if (anim) then addi(anim, 1) end
+
+  local onol = overlay_now or overlay_last
+
+  if false and M.overlay then
+    logprint2("overlay color = "..tostring(M.overlay.color))
+    logprint2("overlay item  = "..tostring(M.overlay.item))
+    logprint2("overlay eff   = "..tostring(M.overlay.effect_type))
+    logprint2("overlay step  = "..tostring(M.overlay.effect_step).."/"..onol.step)
+    end
+
+  if M.overlay and M.overlay.color and M.overlay.effect_type then
+
+    local li = getFX[M.overlay.effect_type]
+
+    if li then
+
+      local ndir = (18-M.overlay.effect_direction)%8
+
+      if truetactical() then li = li.tactical end
+
+      local phc = li.phases[ndir]
+
+      local u
+
+      if li.animphase == 4 then
+        u = math.random(1, 4)
+      else
+        u = 1 + (waterframe % 8)
+        end
+
+      local phid = phc
+
+      local odir 
+      if M.overlay.effect_direction_old >= 0 then
+        odir = (18-M.overlay.effect_direction_old)%8
+      else
+        odir = (ndir+4) % 8
+        end
+
+      if onol.finished or onol.clearing then
+        if M.overlay.effect_step == onol.step then
+          phid = phc/2
+          end
+      else
+        if M.overlay.effect_step == onol.step then
+          phid = math.floor((overlayphase10()+0.5) * phc)
+  
+        elseif M.overlay.effect_step == onol.step-1 then
+          phid = math.floor((overlayphase10()+1.5) * phc)
+          end
+        end
+
+      if phid > phc then phid = phc end
+    
+      if phid >= 0 then
+        local it = li.trail[u][ndir][phid]
+
+        addi(it, 1)
+
+        if phid < phc and not onol.clearing and li.head and li.head[ndir] then
+          local it = li.head[ndir]
+          local avec = dirtovec[ndir]
+          
+          it = it [1+(waterframe % #it)]
+          it = applyshift(it, avec * (phid/phc - 0.5), 0)
+          addi(it, 1)
+          end
+
+        local splatid = 10*odir+ndir
+        
+        local splat = li.splat[splatid]
+        if splat then
+          addi(splat[1+(waterframe % #splat)], 2)
+          end
+        end
+
+    else
+      addi(tilespatial(DirectionTile, spFlat + spFloor + spIFloor), 1)
+      addi(tilespatial(tilerecolor(adomtile("nterface/cursor/grid_highlight"), vgaget(M.overlay.color)), spFlat + spFloor + spIFloor), 1)
+      end
+
+    end
+
+  if M.overlay and M.overlay.color and M.overlay.effect_type <= 0 and M.overlay.item <= 0 then
+    addi(tilealpha(vgaget(M.overlay.color), 0x404040), 1)
+    end
+
+  if M.overlay and M.overlay.item and M.overlay.item >= 1 then
+    local it = adomitem(idtoitempic(M.overlay.item, 1, M.overlay.item_direction))
+    local avec = dirtovec[(18-M.overlay.item_direction)%8]
+    it = applyshift(it, avec * overlayphase10() - V(0,0.75), 0)
+    addi(it, 1)
+    end
+
+  if Global.is_cursor_active and global_x == Global.cursor_x and global_y == Global.cursor_y-Global.lines_above_map and mode ~= modeFPP then
+    if Global.cursor_mode == cursormodeids.CURSOR_LOOK then
+      addi(applymoveshift(cursor_look, "cursor"), 1)
+    elseif Global.cursor_mode == cursormodeids.CURSOR_ATTACK then
+      addi(applymoveshift(cursor_attack, "cursor"), 1)
+    elseif Global.cursor_mode == cursormodeids.CURSOR_TELEPORT then
+      addi(applymoveshift(cursor_teleport, "cursor"), 1)
+    elseif Global.cursor_mode == cursormodeids.CURSOR_COMMAND then
+      addi(applymoveshift(cursor_command, "cursor"), 1)
+      end
+    end
+
+  return tilemerge(R, South)
+  end
+
+BackImage = nil
+BackTile = nil
+
+function fppbackground(v, dir)
+  if not BackImage then
+    BackImage = newimage(720, 256)
+    for x=0,719 do for y=0,255 do
+      setpixel(
+        BackImage,x,y, 
+        ((y < 128) and (255-y + 0x10100 * math.floor(32 + 32 * math.sin(math.pi * x/180))) or (0x4000))
+        )
+      end end
+    -- imgcopy(BackImage,0,0, BackImage,360,0, 360,256)
+    BackTile = {}
+    end
+  if mapon and outdoor then
+    local alpha = 180 / math.pi * math.atan((v.vx1-v.vx0)/2/v.vxs)
+    dir = math.floor(-alpha-dir) % 360
+    if dir < 0 then dir = dir + 360 end
+    if not BackTile[dir] then
+      BackTile[dir] = addtile(BackImage, dir,0, alpha*2,256, -1)
+      end
+    drawtile(Gfx, BackTile[dir], v.vx0, v.vy0, v.vx1-v.vx0, v.vy1-v.vy0)
+  else
+    drawtile(Gfx, tilefill(0), v.vx0, v.vy0, v.vx1-v.vx0, v.vy1-v.vy0)
+    end
+  end
+
+dofile "games/adom-anim.noe"
+dofile "games/adom-character.noe"
+dofile "games/adom-text-window.noe"
+dofile "games/adom-mainmenu.noe"
+dofile "games/adom-creature.noe"
+dofile "games/adom-vfx.noe"
+dofile "games/adom-hud.noe"
+dofile "games/adom-sound.noe"
+
+rungame("whatever")
+
+
+-- 360 = 2*PI
+-- alfa = width = (vx1-vx0)/2/vxs
+-- 
+

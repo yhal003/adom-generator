@@ -1,0 +1,363 @@
+-- text window
+
+function opentextwindow(ev)
+
+  textwindow = ev
+  local t = newmodalwindow("text")
+  textwindow.t = t
+  textwindow.page_size = 10
+  
+  function t.hidden()
+    return mode == modeASCII or mode == modeMed or mode == modeMini
+    end
+  
+  function t.show(hidden)
+  
+    if not graphicalUI() then
+      return
+      end
+      
+    local fsize = mode == modeASCII and fontsize or guifontsize
+  --  textlinestoshow = math.max(math.min(math.floor(xscreen.size.y / fsize.y / 4), textwindow.lines), 2)
+    textlinestoshow = math.min(textwindow.page_size, textwindow.lines)
+  
+    TextWindow = renewscreen(TextWindow, textwindow.width, textwindow.lines)
+    scrfill(TextWindow, 0, 0, textwindow.width, textwindow.lines, 0)
+    for l=0, textwindow.lines-1 do
+      scrwrite(TextWindow, 0, l, textwindow[string.format("line_%03d", l)] or "n/a", Font, 0x804000)
+      -- 0x804000)
+      end
+    
+    if textwindow.window_type == windowtypeids.WT_ACHIEVEMENT then
+      for x=0,4 do for y=0,3 do
+        scrset(TextWindow, x, textwindow.lines-1-y, 0)
+        end end
+      end
+  
+    scrcopy(TextWindow, 0, 0, TextWindow, 0, 0, textwindow.width, textwindow.lines, function(x) 
+      if gco(x) == vgaget(14) then 
+        -- black on transparent
+        --return tilerecolor(x, vgaget(0))
+  
+        -- yellow on black:
+        -- tilemerge(tilefill(0), x)
+  
+        -- glow effect:
+        local y = tilerecolor(x, vgaget(0))
+        
+        return tilemerge3(
+          tilemerge4(
+            tiletransform(y, 1/fsize.x, 0, 1, 1), 
+            tiletransform(y, -1/fsize.x, 0, 1, 1), 
+            tiletransform(y, 0, 1/fsize.x, 1, 1), 
+            tiletransform(y, 0, -1/fsize.x, 1, 1)
+            ), 
+          tilemerge4(
+            tiletransform(y, 1/fsize.x, 1/fsize.y, 1, 1), 
+            tiletransform(y, -1/fsize.x, 1/fsize.y, 1, 1), 
+            tiletransform(y, 1/fsize.y, -1/fsize.x, 1, 1), 
+            tiletransform(y, -1/fsize.y, -1/fsize.x, 1, 1)
+            ), 
+          x
+          )
+        end
+      return x
+      end)
+  
+    -- print("fsize = "..tostring(fsize))
+    -- print("hw size = "..tostring(textwindow.width)..","..tostring(textwindow.lines))
+    
+    if textwindow.scrolling and textwindow.calculate_scrollbar and mousepos then
+      textwindow.line = 0
+      textwindow.calculate_scrollbar()
+      local y0 = textwindow.scrollbar_inner.ctr.y + textwindow.scrolling
+      textwindow.line = 1
+      textwindow.calculate_scrollbar()
+      local y1 = textwindow.scrollbar_inner.ctr.y + textwindow.scrolling
+      textwindow.line = math.floor((mousepos.y - y0) / (y1-y0) + .5)
+      end
+
+    if textwindow.line + textlinestoshow > textwindow.lines then
+      textwindow.line = textwindow.lines - textlinestoshow
+      end
+    if textwindow.line < 0 then textwindow.line = 0 end
+    
+    TextWindowCut = renewscreen(TextWindowCut, textwindow.width, textlinestoshow)
+    scrcopy(TextWindow, 0, textwindow.line, TextWindowCut, 0, 0, textwindow.width, textlinestoshow, TMAP_COPY)
+  
+    textwindow.loc = getpopuplocation(fsize, fsize * V(textwindow.width, textlinestoshow) + V(90,70), textwindow.loc)
+    local hwloc = textwindow.loc + V(45, 35)
+  
+    local gfx_dir = "nterface/window/text2/"
+    
+  --  adomtile("nterface/window/pattern", transAlpha)
+    adomtile(gfx_dir.."scrollBarBG", transAlpha)
+    
+    local scrollbarshown = textlinestoshow < textwindow.lines
+  
+    -- local nextsize = tiles[gfx_dir.."next"].size
+    
+    local ty = 0 -- scrollbarshown and nextsize.y+8 or 0
+    
+    local textboxsize = fsize * V(textwindow.width, textlinestoshow)
+    
+    local windowcoords = 
+      rectTS(hwloc - V(8,8), textboxsize + V(16,16 + ty))
+    
+    if textwindow.window_title then
+      textwindow.titleat = rectXY(
+        windowcoords.top.x, windowcoords.top.y - 36,
+        windowcoords.bot.x, windowcoords.top.y 
+        )
+      windowcoords = rectTB(textwindow.titleat.top, windowcoords.bot)
+      end
+
+    if true then
+      textwindow.pattern = tiles[gfx_dir.."side_pattern"]
+      textwindow.leftpattern = 
+        rectXY(windowcoords.top.x - textwindow.pattern.size.x, windowcoords.top.y,
+          windowcoords.top.x, windowcoords.bot.y
+          )
+      windowcoords = rectTB(textwindow.leftpattern.top, windowcoords.bot)
+      if windowcoords.size.y + 100 < xscreen.size.y then
+        textwindow.rightpattern = 
+          rectXY(windowcoords.bot.x, windowcoords.top.y,
+            windowcoords.bot.x + textwindow.pattern.size.x, windowcoords.bot.y
+            )
+        windowcoords = rectTB(textwindow.leftpattern.top, textwindow.rightpattern.bot)
+        end
+      end
+
+    -- scrollbarshown = false
+
+    if scrollbarshown then
+      textwindow.barsize = tiles[gfx_dir.."scrollbar_BG"].size.x
+      -- textwindow.barsize = tiles[gfx_dir.."btn_down"].size.x
+      textwindow.scrollbar_outer = 
+        rectXY(
+          windowcoords.bot.x, windowcoords.top.y,
+          windowcoords.bot.x + textwindow.barsize,
+          windowcoords.bot.y
+          )
+      end
+    
+    parchment_background(windowcoords)
+
+    if textwindow.window_type == windowtypeids.WT_ACHIEVEMENT then
+      drawnonscaled(tiles["nterface/steam/achievement"], V(hwloc.x, hwloc.y + textboxsize.y), V(0,-1))
+      end
+
+    V.drawscreen(D.output, TextWindowCut, hwloc, fsize)
+    
+    if textwindow.titleat then
+      -- rendertext(GermaniaOne, 18, textwindow.window_title, 0xFFFFBC4D, Gfx, textwindow.titleat.ctr, V(-.5,-.5))
+      rendertext(GermaniaOne, 18, textwindow.window_title, 0xFF603000, Gfx, textwindow.titleat.ctr, V(-.5,-.5))
+      textwindow.titlesub = rectXY(
+        textwindow.titleat.top.x, textwindow.titleat.bot.y-1, 
+        textwindow.titleat.bot.x, textwindow.titleat.bot.y
+        )
+      V.drawtile(D.output, tilefill(0xFFe5ba7c), textwindow.titlesub)
+      end
+    
+    if textwindow.leftpattern then
+      V.drawtile(D.output, textwindow.pattern.t, textwindow.leftpattern)
+      end
+  
+    if textwindow.rightpattern then
+      V.drawtile(D.output, textwindow.pattern.t, textwindow.rightpattern)
+      end
+  
+    if ty>0 then
+      if textwindow.line > 0 then
+        textwindow.prevbutton = drawnonscaled(
+          tiles[gfx_dir.."prev"],
+          V(hwloc.x + textboxsize.x * 0.25, hwloc.y + textboxsize.y + 8),
+          V(-0.5, 0)
+          )
+        end
+      if textwindow.line < textwindow.lines - textlinestoshow then
+        textwindow.nextbutton = drawnonscaled(
+          tiles[gfx_dir.."next"],
+          V(hwloc.x + textboxsize.x * 0.75, hwloc.y + textboxsize.y + 8),
+          V(-0.5, 0)
+          )
+        end
+      end
+    
+    if scrollbarshown then
+      windowcoords = rectTB(windowcoords.top, textwindow.scrollbar_outer.bot)
+      end
+
+    new_window_around(windowcoords, textwindow)
+    
+    function textwindow.calculate_scrollbar()
+      local thgsize = tiles[gfx_dir.."scroll_mid"].size
+      textwindow.endsize = tiles[gfx_dir.."scroll_bottom"].size
+
+      textwindow.butsize = tiles[gfx_dir.."btn_up"].size
+      
+      local backsizex = tiles[gfx_dir.."scrollbar_BG"].size.x
+
+      local midx = textwindow.scrollbar_outer.top.x + (textwindow.barsize - backsizex) / 2
+      
+      local ash = 0
+      
+      textwindow.scrollbar_mid = rectTB(
+        V(midx+ash, textwindow.scrollbar_outer.top.y + 40), -- *butsize.y),
+        V(midx+ash + backsizex, textwindow.scrollbar_outer.bot.y - 15)
+        )
+      
+      local ahei = textwindow.scrollbar_mid.size.y
+      local aheil = ahei / textwindow.lines
+  
+      textwindow.scrollbar_inner = rectTS(
+        V(textwindow.scrollbar_mid.top.x + (backsizex-thgsize.x)/2,
+          textwindow.scrollbar_mid.top.y + aheil * textwindow.line),
+        V(thgsize.x,
+          textlinestoshow * aheil)
+          )
+      end
+
+    if scrollbarshown then
+      
+      textwindow.calculate_scrollbar()
+
+--       + (textwindow.barsize-thgsize.x), textwindow.scrollbar_outer.top.y + butsize.y + 
+--       textwindow.line * aheil),
+--      V(thgsize.x, textlinestoshow * aheil))
+      
+      V.drawtile(D.output, adomtile(gfx_dir.."scrollbar_BG", transAlpha),
+        textwindow.scrollbar_mid
+        )
+  
+--    V.drawtile(D.output, adomtile(gfx_dir.."scrollBar", transAlpha), textwindow.scrollbar_inner)
+--    drawnonscaled(tiles[gfx_dir.."scrollBar_top"], textwindow.scrollbar_inner.top)
+--    drawnonscaled(tiles[gfx_dir.."scrollBar_bottom"], textwindow.scrollbar_inner.bot - endsize)
+
+      local ti = tiles[gfx_dir.."scroll_mid"]
+      
+      V.drawtile(D.output, ti.t, textwindow.scrollbar_inner)
+      drawnonscaled(tiles[gfx_dir.."scroll_top"], textwindow.scrollbar_inner.top)
+      drawnonscaled(tiles[gfx_dir.."scroll_bottom"], 
+        V(textwindow.scrollbar_inner.top.x, textwindow.scrollbar_inner.bot.y - textwindow.endsize.y)
+        )
+  
+      local bsh = (textwindow.barsize - textwindow.butsize.x) / 2
+      
+      textwindow.btn_close = drawbutton(gfx_dir.."btn_close", textwindow.scrollbar_outer.top
+        + V(bsh, -20)
+        )
+      textwindow.btn_up = drawbutton(gfx_dir.."btn_up", textwindow.scrollbar_outer.top
+        + V(bsh, 10)
+        )
+      textwindow.btn_down = drawbutton(gfx_dir.."btn_down", textwindow.scrollbar_outer.bot
+        - V(textwindow.barsize-bsh, 20)
+        )
+      
+      -- for the old style:
+      -- windowcoords = rectTB(windowcoords.top, textwindow.scrollbar_outer.bot)
+
+    else
+      local closeat = V(windowcoords.bot.x, windowcoords.top.y)
+      textwindow.btn_close = drawbutton(gfx_dir.."btn_close", 
+        closeat + V(-36, -20))
+      drawnonscaled(tiles[gfx_dir.."button_corner_shadow"], closeat + V(-65, -8))
+      end
+  
+    textwindow.btn_short = 
+      drawbutton(gfx_dir.."btn_short", V(windowcoords.ctr.x, windowcoords.bot.y + 8) , V(-.5, -.5))
+
+    buttoncaption(textwindow.btn_short, GermaniaOne, 18, "OK")
+    end
+
+  function t.handlekey(ev)
+    if t.hidden() or ev.type ~= evKeyDown then
+      return false
+    elseif iskey(ev, KEYS.DOWN) or iskey(ev, KEYS.KP_2) then
+      textwindow.line = textwindow.line + 1
+      return true
+    elseif iskey(ev, KEYS.UP) or iskey(ev, KEYS.KP_8) then
+      textwindow.line = textwindow.line - 1
+      return true
+    elseif iskey(ev, KEYS.PAGEUP) or iskey(ev, KEYS.KP_9) or keychr(ev) == "-" then
+      textwindow.line = textwindow.line - textlinestoshow + 1
+      return true
+    elseif iskey(ev, KEYS.PAGEDOWN) or iskey(ev, KEYS.KP_3) or keychr(ev) == "+" then
+      textwindow.line = textwindow.line + textlinestoshow - 1
+      return true
+    elseif keychr(ev) == " " then
+      if textlinestoshow and textwindow.line + textlinestoshow < textwindow.lines then
+        textwindow.line = textwindow.line + textlinestoshow - 1
+      else
+  --      nsendtext("z")
+        return true
+        end
+      return true
+    else
+      return false
+      end
+    end
+  
+  function t.handlemouse(ev)
+    if t.hidden() then
+      return false
+      end
+    
+    -- text close
+    if buttonclicked(ev, textwindow.btn_close) then
+      nsendtext("z")
+      return true
+      end
+      
+    if buttonclicked(ev, textwindow.btn_short) then
+      nsendtext("z")
+      return true
+      end
+      
+    if buttonclicked(ev, textwindow.btn_up) then
+      textwindow.line = textwindow.line - 1
+      return true
+      end
+      
+    if buttonclicked(ev, textwindow.btn_down) then
+      textwindow.line = textwindow.line + 1
+      return true
+      end
+
+    -- scroll bar
+    if rectclicked(ev, textwindow.scrollbar_mid) then
+      if ev.y < textwindow.scrollbar_inner.top.y then
+        textwindow.line = textwindow.line - textlinestoshow + 1
+      elseif ev.y > textwindow.scrollbar_inner.bot.y then
+        textwindow.line = textwindow.line + textlinestoshow - 1
+      else
+        textwindow.scrolling = ev.y - textwindow.scrollbar_inner.ctr.y
+        end
+      return true
+      end
+    
+    if ev.type == evMouseUp and textwindow.scrolling then
+      textwindow.scrolling = false
+      return true
+      end
+
+    if rectclicked(ev, textwindow.nextbutton) then
+      textwindow.line = textwindow.line + textlinestoshow - 1
+      return true
+      end
+      
+    if rectclicked(ev, textwindow.prevbutton) then
+      textwindow.line = textwindow.line - textlinestoshow + 1
+      return true
+      end
+      
+    -- mouse wheel
+    if ev.type == evMouseWheel then
+      textwindow.line = textwindow.line - ev.dy
+      return true
+      end
+    
+    return true
+    end
+
+  end

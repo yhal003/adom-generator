@@ -1,0 +1,80 @@
+checking good corruptions
+{'Your mouth has turned into a writhing mass of prehensile tentacles (Dx: +6, Ap: -15).', 'You have grown 10 extra eyes (Ap: -6, Pe: +6).', 'You exhale sulphur (Ch: -4).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Tree talents=3 DV:PV 15/21  (st:19,le:16,wi:15,dx:22,to:17,ch:1,ap:1,ma:26,pe:24) 
+checking good corruptions
+{'You have grown horns (+3 melee damage, Ap: -4).', 'The voice of ChAoS whispers disturbing secrets into your thoughts (Le: +4,  Wi: -6, Ma: +2).', 'Poison drips from your hands.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Raven talents=2 DV:PV 13/16  (st:17,le:19,wi:5,dx:19,to:14,ch:4,ap:14,ma:26,pe:21) 
+checking good corruptions
+{'Your mouth has turned into a writhing mass of prehensile tentacles (Dx: +6, Ap: -15).', 'Poison drips from your hands.', 'Your close attunement to corrupted astral space allows teleportation.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Tree talents=2 DV:PV 15/19  (st:18,le:14,wi:16,dx:22,to:16,ch:6,ap:5,ma:23,pe:18) 
+checking good corruptions
+{'You have grown horns (+3 melee damage, Ap: -4).', 'You are surrounded by an unholy aura (Ch: -10, DV: +6).', 'Your muscles have stiffened slowing you down (base action cost: 1500 energy points; PV: +4, St: +2).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Cup talents=3 DV:PV 19/19  (st:19,le:18,wi:9,dx:18,to:15,ch:1,ap:18,ma:26,pe:17) 
+checking good corruptions
+{'You have grown horns (+3 melee damage, Ap: -4).', 'You sweat blood (Ch: -2, Ap: -4, +5 speed).', 'You hate the sun and try to blot it.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Cup talents=2 DV:PV 13/15  (st:17,le:21,wi:10,dx:19,to:14,ch:4,ap:14,ma:27,pe:17) 
+checking good corruptions
+{'You have grown horns (+3 melee damage, Ap: -4).', 'Your blood turned to acid.', 'You have grown thorns (3d3 melee damage, Dx: -2, Ap: -3).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Falcon talents=3 DV:PV 11/15  (st:18,le:14,wi:14,dx:15,to:14,ch:4,ap:13,ma:22,pe:21) 
+checking good corruptions
+{'Your antennae explore the details of your environment (Ap: -4).', 'You rage (DV: -9, +6 melee damage)!', 'Your close attunement to corrupted astral space allows teleportation.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Cup talents=2 DV:PV 3/15  (st:17,le:15,wi:11,dx:16,to:14,ch:4,ap:15,ma:27,pe:19) 
+checking good corruptions
+{'Poison drips from your hands.', 'Your close attunement to corrupted astral space allows teleportation.', 'Your muscles have stiffened slowing you down (base action cost: 1500 energy points; PV: +4, St: +2).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Cup talents=3 DV:PV 12/20  (st:19,le:17,wi:11,dx:16,to:13,ch:6,ap:21,ma:27,pe:18) 
+checking good corruptions
+{'You are a living mana battery.', 'Your mouth has turned into a writhing mass of prehensile tentacles (Dx: +6, Ap: -15).', 'Your close attunement to corrupted astral space allows teleportation.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Book talents=2 DV:PV 17/15  (st:17,le:22,wi:11,dx:25,to:13,ch:4,ap:4,ma:22,pe:18) 
+checking good corruptions
+{'Your eye(s) turned black (Pe: +3).', 'You have grown 10 extra eyes (Ap: -6, Pe: +6).', 'Your close attunement to corrupted astral space allows teleportation.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Tree talents=2 DV:PV 12/18  (st:18,le:19,wi:15,dx:16,to:17,ch:4,ap:17,ma:20,pe:28) 
+checking good corruptions
+{'The voice of ChAoS whispers disturbing secrets into your thoughts (Le: +4,  Wi: -6, Ma: +2).', 'You rage (DV: -9, +6 melee damage)!', 'You have grown a bulging cranium (Le: +6, Wi: +4, Ap: -6, PV: -4, To: -3).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Book talents=2 DV:PV 5/11  (st:18,le:28,wi:7,dx:18,to:10,ch:3,ap:16,ma:26,pe:19) 
+checking good corruptions
+{'Poison drips from your hands.', 'Your frontal eyes have merged to form one larger eye (Ch: -2, Ap: -2, Pe:   +4).', 'Your bones are made from bronze (Dx: -2, DV: -2, PV: +3).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Tree talents=2 DV:PV 9/24  (st:17,le:20,wi:16,dx:14,to:17,ch:3,ap:19,ma:27,pe:18) 
+checking good corruptions
+{'Your antennae explore the details of your environment (Ap: -4).', 'You are attached to ChAoS corrupting your foes.', 'Your blood is freezing cold (Dx: -2, Ap: -1, -10 speed).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Wand talents=2 DV:PV 12/18  (st:19,le:16,wi:12,dx:16,to:15,ch:5,ap:18,ma:23,pe:18) 
+checking good corruptions
+{'You sweat blood (Ch: -2, Ap: -4, +5 speed).', 'You have become extremely thin and nimble (1/2 weight, DV: +6).', 'Your bones are made from bronze (Dx: -2, DV: -2, PV: +3).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Dragon talents=2 DV:PV 16/18  (st:21,le:13,wi:9,dx:16,to:16,ch:1,ap:14,ma:28,pe:17) 
+checking good corruptions
+{'Your mouth has turned into a writhing mass of prehensile tentacles (Dx: +6, Ap: -15).', 'Poison drips from your hands.', 'Your feet have been transformed into hooves (+8 kicking damage, Dx: -6).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Raven talents=2 DV:PV 12/17  (st:18,le:19,wi:12,dx:16,to:13,ch:4,ap:9,ma:27,pe:20) 
+checking good corruptions
+{'Your mouth has turned into a writhing mass of prehensile tentacles (Dx: +6, Ap: -15).', 'You exhale sulphur (Ch: -4).', 'You thrive on the flesh of Order.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Cup talents=2 DV:PV 16/15  (st:19,le:18,wi:12,dx:23,to:13,ch:1,ap:2,ma:23,pe:19) 
+checking good corruptions
+{'You sweat blood (Ch: -2, Ap: -4, +5 speed).', 'Your skin is covered by tough scales (PV: +8, Dx: -6, Ap: -4).', 'You sport a babbling mouth on your forehead that rants and raves dark       secrets (Le: +8, Ch: -6, Ap: -6, Pe: -4, stealth impossible).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Tree talents=2 DV:PV 10/24  (st:20,le:26,wi:14,dx:11,to:16,ch:1,ap:5,ma:23,pe:13) 
+checking good corruptions
+{'Your flesh continually spouts disease-ridden maggots (To: -6, Ch: -2, Ap:   -4, DV: +4).', 'You have grown 10 extra eyes (Ap: -6, Pe: +6).', 'Your skin is covered by tough scales (PV: +8, Dx: -6, Ap: -4).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Tree talents=2 DV:PV 10/26  (st:17,le:18,wi:16,dx:11,to:9,ch:3,ap:6,ma:25,pe:25) 
+checking good corruptions
+{'You sweat blood (Ch: -2, Ap: -4, +5 speed).', 'You have grown 10 extra eyes (Ap: -6, Pe: +6).', 'Your close attunement to corrupted astral space allows teleportation.'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Book talents=2 DV:PV 13/15  (st:18,le:20,wi:11,dx:18,to:13,ch:2,ap:11,ma:27,pe:25) 
+checking good corruptions
+{'You have become extremely thin and nimble (1/2 weight, DV: +6).', 'Your blood turned to acid.', 'Your legs have stretched into long, fragile stilts (Base movement cost: 750 energy points; PV: -4; -4 kicking damage; Ap: -6).'}
+['You are surrounded by an unholy aura (Ch: -10, DV: +6).']
+generated char month=Cup talents=2 DV:PV 19/13  (st:18,le:19,wi:11,dx:18,to:16,ch:3,ap:15,ma:28,pe:18)

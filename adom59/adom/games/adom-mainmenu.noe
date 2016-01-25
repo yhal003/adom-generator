@@ -1,0 +1,515 @@
+-- ADOM Main Menu
+
+-- boxes
+
+function drawinfobox(where, align)
+  local b = drawnonscaled(tiles["nterface/main/info_container"], where, align or V(-.5, -.5))
+  b.content = rectTB(b.top + V(30,40), b.bot - V(30,40))
+  return b
+  end
+
+function drawgenericbox(where, align)
+  local b = drawnonscaled(tiles["nterface/main/generic_text"], where, align or V(-.5, -.5))
+  b.content = rectTB(b.top + V(40,40), b.bot - V(40,40))
+  return b
+  end
+
+function drawselectinfobox(where, align)
+  local b = drawnonscaled(tiles["nterface/main/select_info"], where, align or V(-.5, -.5))
+  b.content = rectTB(b.top + V(30,138), b.bot - V(30,40))
+  b.char = rectat(b, V(.5, .21))
+  -- b.desc = rectat(b, V(.5, .4))
+  return b
+  end
+
+function drawselectbuttons(where, align)
+  local b = drawnonscaled(tiles["nterface/main/select_buttons"], where, align or V(-.5, -.5))
+  b.title = V(b.ctr.x, b.top.y + 30)
+  b.content = rectTB(b.top + V(30,60), b.bot - V(30,40))
+  return b
+  end
+
+function openteamadomscreen(ev)
+
+  local m = newmodalwindow("teamadom")
+  m.mode = 1
+
+  teamadom = {
+    {"thecreator", "Thomas Biskup", "(The Creator)", "Maintainer", "http://www.adom.de"},
+    {"ravenmore", "Krzysztof Dycha", "(Ravenmore)", "Art Director", "http://dycha.net"},
+    {"oneiros", "Lucas Dieguez", "(Soundwizard)", "Sound Director"},
+    {"jochen", "Jochen Terstiege", nil, "Architect & Developer", "http://terstiege.de"},
+    {"zeno", "Zeno Rogue", nil, "NotEye Wizard", "http://roguetemple.com/z/"}
+    }
+  
+  for a = 1,5 do
+    local b = math.random(1, a)
+    local t = teamadom[a]
+    teamadom[a] = teamadom[b]
+    teamadom[b] = t
+    end
+  
+  function m.fullshow(hidden)
+    if not graphicalUI() then return false end
+    
+    function displaychar(where, z)
+      local t = tiles["nterface/credits/"..z[1]]
+      local mirrored
+      
+      if not z.wx then 
+        z.wx = where.x 
+        z.wy = where.y + 20 
+        z.lasttime = getticks()
+        end
+
+      function goto(tx, spd, debug)
+        if z.wx < tx-0.1 then
+          z.wx = z.wx + spd * (getticks() - z.lasttime) / 10
+          if z.wx > tx then z.wx = tx end
+          if not z.bobbing then 
+            z.bobbing = getticks()
+            end
+        elseif z.wx > tx+0.1 then
+          z.wx = z.wx - spd * (getticks() - z.lasttime) / 10
+          if z.wx < tx then z.wx = tx end
+          if not z.bobbing then 
+            z.bobbing = getticks()
+            end
+          end
+        end
+    
+      
+      z.wy = where.y + 20 
+    
+      local runaway
+
+      if mousepos then
+        
+        if not z.jumptime then
+          z.mirrored = mousepos.x < z.wx
+          end
+
+        if mousepos.y < where.y and mousepos.y > where.y - 120 and not z.jumptime then
+          if mousepos.x >= z.wx-40 and mousepos.x <= z.wx+40 and mousepos.y >= where.y - 40 then
+            z.jumptime = getticks()
+            z.jumpfrom = z.wx
+            z.jumpto = (mousepos.x > z.wx and mousepos.x-60 or mousepos.x+60)
+          elseif mousepos.x >= z.wx-60 and mousepos.x <= z.wx+60 then
+            runaway = true
+            if mousepos.x < z.wx then goto(mousepos.x + 60, 4, "A") end
+            if mousepos.x > z.wx then goto(mousepos.x - 60, 4, "B") end
+            end
+          end
+        end
+      
+      if not runaway then goto(where.x, 1, "C") end
+    
+      if (z.wx > where.x + 100 or z.wx < where.x - 100) and not z.jumptime then
+        z.jumptime = getticks()
+        z.jumpfrom = z.wx
+        z.jumpto = where.x
+        end
+      
+      if z.jumptime then
+        local t = (getticks() - z.jumptime) / 250
+        if t < 1 then
+          z.wx = z.jumpfrom + (z.jumpto - z.jumpfrom) * t 
+          z.wy = where.y + 20 - 160 * t * (1-t)
+        else
+          z.jumptime = nil
+          end
+        end
+      
+      if z.bobbing then
+        local t = (getticks() - z.bobbing) / 100
+        if t < 1 then
+          z.wy = z.wy - t * (1-t) * 8
+        else
+          z.bobbing = nil
+          end
+        end
+          
+      z.lasttime = getticks()
+
+      if z.mirrored then
+        t = {t = tiletransform(t.t, 1, 0, -1, 1), size = t.size}
+        end
+      
+      drawnonscaled(t, V(z.wx, z.wy), V(-.5, -1))
+      rendertext(GermaniaOne, 16, z[2]..(z[3] and " "..z[3] or ""), 0xFF000000, Gfx, where, V(-0.5,0))
+      rendertext(AlegreyaRegular, 16, z[4], 0xFF303000, Gfx, where + V(0,18), V(-0.5,0))
+      if z[5] then
+        rendertext(AlegreyaRegular, 12, z[5], 0xFF303000, Gfx, where + V(0,34), V(-0.5,0))
+        end
+      end
+
+    drawtitleimage(m)
+    local b = drawgenericbox(xscreen.ctr, V(-.5, -.5))
+    
+    local dx = (xscrsize.x - 800) / 2
+    local dy = (xscrsize.y - 500) / 2
+    
+    drawnonscaled(tiles["nterface/credits/logo_small"], V(dx+400, dy+30), V(-.5, 0))
+    rendertext(GermaniaOne, 36, "Team ADOM", 0xFF000000, Gfx, V(dx+400, dy+165), V(-0.5,-0.5))
+    
+    displaychar(V(dx+ 800 * 36/100, dy+260), teamadom[1])
+    displaychar(V(dx+ 800 * 64/100, dy+260), teamadom[2])
+    displaychar(V(dx+ 800 * 22/100, dy+375), teamadom[3])
+    displaychar(V(dx+ 800 * 50/100, dy+375), teamadom[4])
+    displaychar(V(dx+ 800 * 78/100, dy+375), teamadom[5])
+    
+    m.detailedcredits = 
+      drawbutton("nterface/main/btn", V(xscrsize.x/2 - 200 - buttonsize.x/2, b.content.bot.y -buttonsize.y/2))
+    
+    m.closebutton = 
+      drawbutton("nterface/main/btn", V(xscrsize.x/2 + 200 - buttonsize.x/2, b.content.bot.y -buttonsize.y/2))
+    
+    buttoncaption(m.detailedcredits, GermaniaOne, 18, "More detailed credits", "c", 14)
+    buttoncaption(m.closebutton, GermaniaOne, 18, "Close")
+
+    return true
+    end
+  
+  function m.handlemouse(ev)
+    if buttonclicked(ev, m.detailedcredits) then
+      nsendtext("c")
+    elseif ev.type == evMouseUp then
+      nsendtext(" ")
+      end
+    return true
+    end
+  
+  openscreen(m)
+  return m
+  end
+
+function openadommainmenu(ev)
+
+  local m = newmodalwindow("main")
+  m.mode = 1
+  
+  function m.fullshow(hidden)
+    if not graphicalUI() then return false end
+
+    drawtitleimage(m)
+    
+    local menuctr = V(xscreen.ctr.x - 200, xscreen.ctr.y)
+    local infoctr = V(xscreen.ctr.x + 200, xscreen.ctr.y + 30)
+    
+    local mcntr = nil
+    if Global.is_deluxe then
+      mcntr = tiles["nterface/main/deluxe_menu_container"]
+    else
+      mcntr = tiles["nterface/main/menu_container"]
+      end
+
+    local shift_ms = 750
+    local shift
+    if titleclosetime and getticks() < titleclosetime + shift_ms then
+      shift = menuctr.x + mcntr.size.x/2
+      local shift0 = shift * (getticks() - titleclosetime) / shift_ms
+      shift = shift * (shift_ms + (titleclosetime - getticks())) / shift_ms
+      menuctr = menuctr - V(shift, 0)
+      infoctr = infoctr + V(shift, 0)
+      
+      drawtitleextra({}, shift0)
+    
+    else
+      shift = 0
+      end    
+
+    drawnonscaled(mcntr, menuctr, V(-.5, -.5))
+    m.infobox = drawinfobox(infoctr, V(-.5, -.5))
+    
+    local flagsize = tiles["nterface/main/manual_off"].size
+  
+    local infobox_map = nil
+
+    m.manual = 
+      drawbutton("nterface/main/manual", V(infoctr.x + flagsize.x * -1.5, 0) - V(shift, shift))
+      if m.manual.over or m.manual.down then
+        infobox_map = adom_nelib_main_menu_infobox_map("manual")
+        end
+    m.settings = 
+      drawbutton("nterface/main/settings", V(infoctr.x + flagsize.x * -0.5, 0) - V(shift, shift))
+      if m.settings.over or m.settings.down then
+        infobox_map = adom_nelib_main_menu_infobox_map("settings")
+        end
+    m.credits = 
+      drawbutton("nterface/main/credits", V(infoctr.x + flagsize.x *  0.5, 0) - V(shift, shift))
+      if m.credits.over or m.credits.down then
+        infobox_map = adom_nelib_main_menu_infobox_map("credits")
+        end
+    
+    local buttonsize = tiles["nterface/main/btn_off"].size - V(0,8)
+
+    local buttony = menuctr.y - mcntr.size.y/2 + 160
+    
+    function nextbutton(caption, infobox_id, key, index)
+      local b = 
+        drawbutton("nterface/main/btn", V(menuctr.x - buttonsize.x/2, buttony))
+      buttony = buttony + buttonsize.y
+      buttoncaption(b, GermaniaOne, 18, caption, key, index)
+      if b.over or b.down then
+        infobox_map = adom_nelib_main_menu_infobox_map(infobox_id)
+        end
+      return b
+      end
+
+    m.buttons = {}
+    
+    if m.mode == 1 then
+      m.buttons.newgame = nextbutton("New Game", "new_game", "N")
+      m.buttons.loadgame = nextbutton("Restore old game", "restore_old_game", "R")
+      m.buttons.highscores = nextbutton("Highscores", "highscores", "H")
+      if Global.is_deluxe then
+        m.buttons.achievements = nextbutton("Achievements", "achievements", "A")
+      else
+        m.buttons.donations = nextbutton("Donations", "donations", "D")
+        m.buttons.postcardquest = nextbutton("Postcard quest", "postcard_quest", "P")
+        end
+      buttony = menuctr.y + mcntr.size.y/2 - 60
+      m.buttons.quitgame = nextbutton("Quit", "quit", "Q")
+      end
+
+    if m.mode == 2 then
+      m.buttons.tutorial = nextbutton("Start Tutorial", "start_tutorial", "S")
+      m.buttons.normalgame = nextbutton("Generate new character", "generate_new_character", "G")
+--    m.buttons.repeatgame = nextbutton("Repeat last game")
+      if Global.is_deluxe then
+        m.buttons.cotw = nextbutton("Challenge of the week", "challenge_of_the_week", "w", 17)
+        m.buttons.crowd = nextbutton("Crowd mode", "crowd_mode", "o", 2)
+        m.buttons.exploration = nextbutton("Exploration mode", "exploration_mode", "E")
+        end
+      buttony = menuctr.y + mcntr.size.y/2 - 60
+      m.buttons.back = nextbutton("Back", "back", "B")
+      end
+
+    rendertext(AlegreyaBold, 14, ev.version, 0xFFFFFFFF, Gfx, xscreen.bot - V(8,8), V(-1,-1))
+    
+    m.monsteridtodraw = m.monsteridtodraw or math.random(1, 430)
+
+    if infobox_map == nil then
+      if m.mode == 2 then
+        infobox_map = adom_nelib_main_menu_infobox_map("new_game_title")
+      else
+        infobox_map = adom_nelib_main_menu_infobox_map("adom_title")
+        end
+      end
+
+    local text = ""
+    if infobox_map.header ~= nil then
+      text = style_header..infobox_map.header.."\n"
+      end
+    text = text..style_center..tiletotext(tiles["NPC/"..m.monsteridtodraw])
+    if infobox_map.body ~= nil then
+      text = text..style_normal.."\n"..infobox_map.body
+      end
+
+    renderlongtext(AlegreyaRegular, 16, text, 0xFF000000, Gfx, m.infobox.content)
+    
+    -- clear the whole ASCII screen
+    -- V.scrfill(IMG, rectTS(V(0,0), D.conssize), 0)
+    if hidden then
+      V.drawtile(D.output, tileshade(0), xscreen)
+      end
+      
+    return true
+    end
+  
+  function m.handlemouse(ev)
+    if not graphicalUI() then return false end
+    local b = m.buttons
+    if not b then b = {} end
+    if buttonclicked(ev, m.manual) then
+      nsendtext("m")
+    elseif buttonclicked(ev, m.settings) then
+      nsendtext("e")
+    elseif buttonclicked(ev, m.credits) then
+      nsendtext("c")
+    elseif buttonclicked(ev, b.newgame) then
+      m.mode = 2
+    elseif buttonclicked(ev, b.quitgame) then
+      nsendtext("q")
+    elseif buttonclicked(ev, b.back) then
+      m.mode = 1
+    elseif buttonclicked(ev, b.loadgame) then
+      nsendtext("r")
+    elseif buttonclicked(ev, b.achievements) then
+      nsendtext("a")
+    elseif buttonclicked(ev, b.highscores) then
+      nsendtext("h")
+    elseif buttonclicked(ev, b.tutorial) then
+      nsendtext("s")
+    elseif buttonclicked(ev, b.normalgame) then
+      nsendtext("g")
+    elseif buttonclicked(ev, b.repeatgame) then
+      nsendtext("l")
+    elseif buttonclicked(ev, b.cotw) then
+      nsendtext("w")
+    elseif buttonclicked(ev, b.crowd) then
+      nsendtext("o")
+    elseif buttonclicked(ev, b.exploration) then
+      nsendtext("x")
+    elseif buttonclicked(ev, b.donations) then
+      nsendtext("d")
+    elseif buttonclicked(ev, b.postcardquest) then
+      nsendtext("p")
+      end
+    return true
+    end
+
+  function m.handlekey(ev)
+    if not graphicalUI() then return false end
+--  if ev.type == evKeyDown then m.close() end
+    if iskey(ev, KEYS.n) then
+      m.mode = 2
+      return true
+      end
+    if iskey(ev, KEYS.b) then
+      m.mode = 1
+      return true
+      end
+    return false
+    end
+
+  openscreen(m)
+  return m
+  end
+
+function drawtitleextra(m, s0)
+  local flagsize = tiles["nterface/main/manual_off"].size
+
+  m.settings = 
+    drawbutton("nterface/main/settings", V(flagsize.x * 0.5, 0-s0))
+  m.credits = 
+    drawbutton("nterface/main/credits", V(xscrsize.x - flagsize.x * 1.5, 0-s0))
+  
+  drawnonscaled(tiles["nterface/main/Logo"], xscrsize * V(.5, .0) - V(0,s0), V(-.5, 0))
+  
+  local blinkphase = 
+    128 + math.floor(math.sin(getticks()/400) * 100)
+    
+  m.play =
+    rendertext(GermaniaOne, 18, "Press SPACE to start >", 0x1000000 * blinkphase + 0xFFD500, Gfx, xscreen.bot * V(0.5,1) + V(0,s0), V(-0.5,-1.2))    
+  end
+
+function opentitlescreen(ev)
+
+  local m = newmodalwindow("title")
+  
+  function m.fullshow(hidden)
+    if not graphicalUI() then return false end
+    
+    drawtitleimage(m)
+    
+    drawtitleextra(m, 0)
+        
+    if hidden then
+      V.drawtile(D.output, tileshade(0), xscreen)
+      end
+
+    -- clear the whole ASCII screen
+    V.scrfill(IMG, rectTS(V(0,0), D.conssize), 0)
+    return true
+    end
+  
+  function m.handlemouse(ev)
+    if not graphicalUI() then return false end
+    if buttonclicked(ev, m.settings) then
+      nsendtext("s")
+    elseif buttonclicked(ev, m.credits) then
+      nsendtext("c")
+    elseif ev.type == evMouseUp then
+      nsendtext("p")
+      end
+    return true
+    end
+
+  function m.handlekey(ev)
+    if not graphicalUI() then return false end
+--  if ev.type == evKeyDown then m.close() end
+    return false
+    end
+
+  local lclose = m.close
+  function m.close(ev)
+    titleclosetime = getticks()
+    lclose()
+    end
+
+  openscreen(m)
+  return m
+  end
+
+function drawtitleimage(m)
+  drawtile(Gfx, tiles["nterface/main/bg_clean"].t, 0, 0, xscrsize.x, xscrsize.y)
+  
+  if not m.t then m.t = getticks() end
+  
+  while m.t < getticks() do
+    m.t = m.t + 10
+    if m.lightning1 and math.random(1, 30) == 1 then
+      m.lightning1 = nil
+      end
+    if m.lightning2 and math.random(1, 30) == 1 then
+      m.lightning2 = nil
+      end
+    if m.lightning3 and math.random(1, 30) == 1 then
+      m.lightning3 = nil
+      end
+    if math.random(1, 500) == 1 then
+      m.lightning1 = true
+      end
+    if math.random(1, 500) == 1 then
+      m.lightning2 = true
+      end
+    if math.random(1, 500) == 1 then
+      m.lightning3 = true
+      end
+    if not m.eyelights and math.random(1, 500) == 1 then
+      m.eyelights = m.t
+      end
+    end
+
+  function scaledraw(img, x, y, alpha)
+    local t = tiles[img]
+    local s = t.size
+    local r = rectTS(V(x,y), s)
+    local rsc = r * xscrsize / tiles["nterface/main/bg_clean"].size
+    local til = t.t
+    if alpha then 
+      til = tilecol(til, 0x1000000 * math.floor(alpha) + 0xFFFFFF, recMult)
+      end
+    V.drawtile(Gfx, til, rsc)
+    end
+  
+  if m.lightning1 and math.random(1,2) == 1 then
+    scaledraw("nterface/main/lightning1", 397, 111)
+    end
+
+  if m.lightning2 and math.random(1,2) == 1 then
+    scaledraw("nterface/main/lightning2", 250, 114)
+    end
+  
+  if m.lightning3 and math.random(1,2) == 1 then
+    scaledraw("nterface/main/lightning3", -18, 105)
+    end
+  
+  if m.eyelights then
+    local t = (getticks() - m.eyelights) / 4
+    local alpha
+    if t < 0 then alpha = 0
+    elseif t < 255 then alpha = t
+    elseif t > 255*2 then m.eyelights = nil alpha = 0
+    elseif t > 255 then alpha = 255 + 255 - t
+    end
+    scaledraw("nterface/main/eyeLights", 479, 216, alpha)
+    end
+
+  if (m.lightning1 or m.lightning2 or m.lightning3) and math.random(1, 10) == 1 then
+    triggergameeventid(gameeventids.GE_MAIN_MENU_THUNDER)
+    end
+  
+  end
+

@@ -1,0 +1,231 @@
+-- utilities for the UI
+
+function graphicalUI()
+  return mode ~= modeASCII
+  end
+
+currentscreen = nil
+currentmodal = nil
+
+-- use openscreen(nil) to close the current screen
+function openscreen(f)
+  if currentscreen then currentscreen.close() end
+  currentscreen = f
+  end
+
+function overlayphase10()
+  local o = overlay_now or overlay_last
+  if not o then
+    logprint2("ERROR: overlay is not active")
+    return 0
+    end
+  local phase = (o.endtime - os.clock()) / (o.starttime - o.endtime)
+  -- if phase > 0.5 then return 0.5 end
+  return phase
+  end
+
+-- draw a window around loc
+function old_window_around(loc, data)
+  local fsize = mode == modeASCII and fontsize or guifontsize
+
+  local gfx_dir = "nterface/window/text/"
+  drawbotedge(tiles[gfx_dir.."b_bot"], loc.top.x + 80 - 14, loc.bot.x - 65, loc.bot.y - 1)
+  drawtopedge(tiles[gfx_dir.."b_top"], loc.top.x + 80 - 14, loc.bot.x - 65, loc.top.y + 1)
+  drawleftedge(tiles[gfx_dir.."b_left"], loc.top.x+1, loc.top.y + 110 - 65, loc.bot.y - 80)
+  drawrightedge(tiles[gfx_dir.."b_right"], loc.bot.x-1, loc.top.y + 110 - 65, loc.bot.y - 80)
+
+  -- adomtile("nterface/window/bg_txt", transNone)
+  -- V.drawtile(D.output, tilefill(0), rectXY(loc.top.x+2, loc.top.y-41, loc.bot.x-45, loc.top.y-15))
+  -- V.drawtile(D.output, adomtile("nterface/window/tut_head", transAlpha), rectXY(loc.top.x+2, loc.top.y-41, loc.bot.x-45, loc.top.y-15))
+
+  -- drawnonscaled(tiles[gfx_dir.."tut_head"], V(loc.ctr.x, loc.top.y-37), V(-0.5, 0))
+  rendertext(GermaniaOne, 18, data.window_title or "NO TITLE", 0xFFFFBC4D, Gfx, V(loc.ctr.x, loc.top.y-39), V(-.5,0))
+  
+  drawnonscaled(tiles[gfx_dir.."c_bot_l"], V(loc.top.x, loc.bot.y) - V(14, 82))
+  drawnonscaled(tiles[gfx_dir.."c_bot_r"], V(loc.bot.x, loc.bot.y) - V(65, 81))
+
+  drawnonscaled(tiles[gfx_dir.."c_top_left"], V(loc.top.x, loc.top.y) - V(14,60))
+  drawnonscaled(tiles[gfx_dir.."c_top_right"], V(loc.bot.x, loc.top.y) - V(65, 60))
+  
+  -- V.drawtile(D.output, tileshade(0xFF0000), rectTB(V(loc.top.x, loc.top.y), V(loc.bot.x,loc.bot.y)))
+
+  local closeat = V(loc.bot.x, loc.top.y) - V(25, 40)
+  data.btn_close = drawbutton(gfx_dir.."btn_close", closeat)
+  end
+
+-- draw a window around loc
+
+function drawalledges(t, where)
+  local ts = t.size
+  local tsleft = math.floor(ts.x / 2)
+  local tsright = ts.x - tsleft
+  V.drawtile(D.output, t.t, rectXY(where.top.x - tsleft, where.top.y, where.top.x + tsright, where.bot.y))
+  V.drawtile(D.output, tiletransform(t.t, 1, 0, -1, 1), rectXY(where.bot.x - tsright, where.top.y, where.bot.x + tsleft, where.bot.y))
+  local tdown = tilefreeform(t.t, turnleft)
+  local tup = tilefreeform(t.t, turnright)
+  V.drawtile(D.output, tdown, rectXY(where.top.x, where.bot.y-tsleft, where.bot.x, where.bot.y+tsright))
+  V.drawtile(D.output, tup, rectXY(where.top.x, where.top.y-tsright, where.bot.x, where.top.y+tsleft))
+  end
+
+function drawallcorners(t, where)
+  local ts = t.size
+  local tsleft = math.floor(ts.x / 2)
+  local tsright = ts.x - tsleft
+  local tsup = math.floor(ts.y / 2)
+  local tsdown = ts.y - tsup
+  V.drawtile(D.output, t.t, 
+    rectXY(where.top.x-tsleft, where.top.y-tsup, where.top.x+tsright, where.top.y+tsdown))
+  V.drawtile(D.output, tiletransform(t.t, 1, 1, -1, -1), 
+    rectXY(where.bot.x-tsright,where.bot.y-tsdown, where.bot.x+tsleft, where.bot.y+tsup))
+  V.drawtile(D.output, tiletransform(t.t, 0, 1, 1, -1), 
+    rectXY(where.top.x-tsleft, where.bot.y-tsdown, where.top.x+tsright, where.bot.y+tsup))
+  V.drawtile(D.output, tiletransform(t.t, 1, 0, -1, 1), 
+    rectXY(where.bot.x-tsright,where.top.y-tsup, where.bot.x+tsleft, where.top.y+tsdown))
+  end
+
+function new_window_around(loc, data)
+  local fsize = mode == modeASCII and fontsize or guifontsize
+
+  local gfx_dir = "nterface/window/text2/"
+  drawalledges(tiles[gfx_dir.."frame_side"], loc)
+  drawallcorners(tiles[gfx_dir.."frame_corner"], loc)
+  
+  -- V.drawtile(D.output, tileshade(0xFF0000), rectTB(V(loc.top.x, loc.top.y), V(loc.bot.x,loc.bot.y)))
+  end
+
+-- draw the parchment background
+function parchment_background(loc, t)
+
+  local fsize = mode == modeASCII and fontsize or guifontsize
+  local gfx_dir = "nterface/window/text/"
+
+  V.drawtile(D.output, adomtile(gfx_dir.."bg_txt", transNone), loc)
+
+  drawleftedge(tiles[gfx_dir.."b_txt"], loc.bot.x, loc.top.y, loc.bot.y)
+  drawrightedgeflip(tiles[gfx_dir.."b_txt"], loc.top.x, loc.top.y, loc.bot.y)
+  drawbotedgerotate(tiles[gfx_dir.."b_txt"], loc.top.x, loc.bot.x, loc.top.y)
+  drawtopedgerotate(tiles[gfx_dir.."b_txt"], loc.top.x, loc.bot.x, loc.bot.y)
+  
+  end
+
+function buttonclicked(ev, button)
+  if not button then
+    return false
+    end
+  if ev.type == evMouseUp and button and button.down then
+    button.down = false
+    return true
+    end
+  if ev.type == evMouseDown and button and button.over then
+    button.down = true
+    triggergameeventid(gameeventids.GE_MAIN_MENU_BUTTON_CLICKED)
+    end
+  return false
+  end
+
+function rectclicked(ev, rect)
+  return ev.type == evMouseDown and rect and inrect(ev, rect)
+  end
+
+style_normal = "\v*s16\n\v*fAlegreyaRegular\n\v*al\n"
+style_center = "\v*s16\n\v*fAlegreyaRegular\n\v*ac\n"
+style_header = "\v*s28\n\v*fGermaniaOne\n\v*ac\n"
+style_boldcenter = "\v*s16\n\v*fAlegreyaBold\n\v*ac\n"
+
+align_center = V(-.5, -.5)
+
+function tiletotext(t, scale)
+  local size = t.size * (scale or V(1,1))
+  return "\v*tx"..size.x.."\n\v*ty"..size.y.."\n\v*td"..t.t.."\n"
+  end
+
+-- buttons
+
+function drawshortbutton(caption, key, index, where, align)
+  local b = 
+    drawbutton("nterface/main/btn_short", where, align)
+  buttoncaption(b, GermaniaOne, 18, caption, key, index)
+  return b
+  end    
+
+buttonsize = tiles["nterface/main/btn_off"].size - V(0,8)
+tiles["nterface/main/btn_off"].buttonsize = buttonsize
+tiles["nterface/main/btn_off"].captionoffset = V(0,4)
+tiles["nterface/main/btn_short_off"].captionoffset = V(0,4)
+
+function drawnonscaled(tile, where, alignment, f)
+  if tile.t == 0 then return nil end
+    if alignment then where = where + tile.size * alignment end
+  
+  local r = rectTS(where, tile.size)
+  V.drawtile(D.output, f and f(tile.t) or tile.t, r)
+  return r
+  end
+
+function drawbotedge(tile, x1, x2, y)
+  V.drawtile(D.output, tile.t, rectXY(x1, y, x2, y + tile.size.y))
+  end
+
+function drawtopedge(tile, x1, x2, y)
+  V.drawtile(D.output, tile.t, rectXY(x1, y - tile.size.y, x2, y))
+  end
+
+function drawleftedge(tile, x, y1, y2)
+  V.drawtile(D.output, tile.t, rectXY(x - tile.size.x, y1, x, y2))
+  end
+
+function drawrightedgeflip(tile, x, y1, y2)
+  V.drawtile(D.output, tile.t, rectXY(x + tile.size.x, y1, x, y2))
+  end
+
+function drawbotedgerotate(tile, x1, x2, y)
+  V.drawtile(D.output, 
+    tilefreeform(tile.t, turnleft),
+    rectXY(x1, y, x2, y + tile.size.x))
+  end
+
+function drawtopedgerotate(tile, x1, x2, y)
+  V.drawtile(D.output, 
+    tilefreeform(tile.t, turnright),
+    rectXY(x1, y - tile.size.x, x2, y))
+  end
+
+function drawrightedge(tile, x, y1, y2)
+  V.drawtile(D.output, tile.t, rectXY(x, y1, x + tile.size.x, y2))
+  end
+
+function drawbutton(name0, where, align)
+
+  local t = tiles[name0]
+  
+  if t.pic == 0 then 
+    t = tiles[name0.."_off"] 
+    end
+  
+  if t.pic == 0 then return nil end
+  
+  if align then where = where + t.buttonsize * align end
+
+  local r = rectTS(where, t.buttonsize)
+  
+  r.captionctr = r.ctr + t.captionoffset   
+   
+  if mousepos and inrect(mousepos, r) then
+     if mousepressed then
+       t = tiles[name0.."_down"]
+       if t.pic == 0 then
+         t = tiles[name0.."_over"]
+         where = where + V(-2, 2)
+         end
+       r.down = true
+     else
+       t = tiles[name0.."_over"]
+       r.over = true
+       r.down = false
+       end
+     end
+
+  V.drawtile(D.output, t.t, rectTS(where, t.size))
+  return r
+  end
+

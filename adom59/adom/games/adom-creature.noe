@@ -1,0 +1,563 @@
+-- Functions which draw creatures (PC, monsters, and some other minor things).
+
+LabelRenderer = create_prerenderer(
+  {font = AlegreyaRegular, size = 12, flags = 0, color = 0xFFFFFFFF,
+  process = function(t,s) t.ttrans = tiletransform(t.t, 8/7, -6/7, t.size.x/7, t.size.y/7) end 
+  })
+
+local xp = "exp."
+
+xplevelnames = {
+  "Somewhat "..xp, "Moderately "..xp, "Experienced", "Very "..xp,
+  "Highly "..xp, "Extremely "..xp, "Omnipotent"
+  };
+
+xplevelnames[0] = "no experience"
+
+
+function healthbarcolor(health)
+  if health < 50 then
+    return 0xFF0000 + 0x100 * math.floor(health*255/50)
+  else
+    return 0xFFFF00 - 0x10000 * math.floor((health-50)*255/50)
+    end
+  end
+
+function powerpointscolor(pp, max_pp)
+--  return 0xFF + 0x10100 * math.floor(128 + pp*127/max_pp)
+  return 0x15A6DA
+  end
+
+function drawhealthbar(obj, hpos)
+  if not showhealthbars then return 0 end
+
+  local health = obj.health
+
+  local col = healthbarcolor(health)
+
+  if mode == modeMini or mode == modeASCII or mode == modeMed then
+    local bar1 = tilemerge(
+      tilefill(0), 
+      tiletransform(tilefill(col),0,0,health/100,1)
+      )
+    return tiletransform(bar1, 0, hpos, 1, 1/fontsize.y)
+    end
+
+  local hpborder = "hp_gray"
+  if not obj.attitude then   -- the PC
+    hpborder = "hp_brown"
+  elseif obj.attitude == attitudeids.AGGRAVATED then
+    hpborder = "hp_red"
+  elseif obj.attitude == attitudeids.SLIGHTLY_AGGRAVATED then
+    hpborder = "hp_orange"
+  elseif obj.attitude == attitudeids.AMBUSHING then
+    hpborder = "hp_purple"
+  elseif obj.attitude == attitudeids.STANDARD then
+    hpborder = "hp_yellow"
+  elseif obj.attitude == attitudeids.FRIENDLY then
+    hpborder = "hp_green"
+  elseif obj.attitude == attitudeids.PEACEFUL then
+    hpborder = "hp_green"
+  elseif obj.attitude == attitudeids.TAME then
+    hpborder = "hp_cyan"
+    end
+
+  local hbar = adomtile("nterface/healthbar/"..hpborder, transAlpha)
+  local bsize = tiles["nterface/healthbar/"..hpborder].size
+
+  local hbari_orig = adomtile("nterface/healthbar/hp_bar2", transAlpha)
+  local bsizei = tiles["nterface/healthbar/hp_bar2"].size
+
+  local hbari = tilecol(hbari_orig, col, recDefault)
+  
+  local bbar = tilemerge(hbar, tiletransform(hbari, (bsize.x-bsizei.x)/bsize.x/2, (bsize.y-bsizei.y-1)/bsize.y/2, (bsizei.x/bsize.x)*health/100, bsizei.y/bsize.y))
+  local statuspos = 0
+
+  if obj.max_pp and obj.max_pp > 0 then
+    local mcol = powerpointscolor(obj.pp, obj.max_pp)
+    local mbari = tilecol(hbari_orig, mcol, recDefault)
+    local mbar = tilemerge(hbar, tiletransform(mbari, (bsize.x-bsizei.x)/bsize.x/2, (bsize.y-bsizei.y-1)/bsize.y/2, (bsizei.x/bsize.x)*obj.pp/obj.max_pp, bsizei.y/bsize.y))
+    statuspos = -5/7
+    bbar = tilemerge(tiletransform(bbar, 0, statuspos, 1, 1), mbar)
+    end
+  
+  local simg = 0
+
+  -- display healing animation on healthbar
+  if obj.uid and healinginfo[obj.uid] then
+    local hi = healinginfo[obj.uid]
+    local time = getticks() - hi.time
+
+    if hi.difference < 0 then
+      local frame = 255 - time
+      if frame < 0 then
+        healinginfo[obj.uid] = nil
+      else
+        local hbar = adomtile("nterface/healthbar/hp_glow_r", transAlpha)
+        hbar = tilecol(hbar, 0x1000000 * frame + 0xFFFFFF, recMult)
+        local bsizei = tiles["nterface/healthbar/hp_glow_r"].size
+        bbar = tilemerge(tiletransform(hbar, (bsize.x-bsizei.x)/bsize.x/2, (bsize.y-bsizei.y-1)/bsize.y/2 + statuspos, (bsizei.x/bsize.x), bsizei.y/bsize.y), bbar)
+        end
+
+    elseif hi.difference > 0 then
+
+      local frame = 255 - math.floor(time / 2)
+      if frame < 0 then
+        healinginfo[obj.uid] = nil
+      else
+        local hbar = adomtile("nterface/healthbar/hp_glow_g", transAlpha)
+        hbar = tilecol(hbar, 0x1000000 * frame + 0xFFFFFF, recMult)
+        local bsizei = tiles["nterface/healthbar/hp_glow_g"].size
+        bbar = tilemerge(tiletransform(hbar, (bsize.x-bsizei.x)/bsize.x/2, (bsize.y-bsizei.y-1)/bsize.y/2 + statuspos, (bsizei.x/bsize.x), bsizei.y/bsize.y), bbar)
+
+        local hplus = adomtile("nterface/healthbar/hp_up", transAlpha)
+        hplus = tilecol(hplus, 0x1000000 * frame + 0xFFFFFF, recMult)
+        bsizei = tiles["nterface/healthbar/hp_up"].size
+        bbar = tilemerge(tiletransform(hplus, 1, statuspos, (bsizei.x/bsize.x), bsizei.y/bsize.y), bbar)
+        end
+      end
+    
+    end
+
+  if obj then
+    local statat = statuspos-(bsize.y+2)/7
+
+    local showfullinfo = getkeystate(SDLSCAN.LSHIFT) > 0 or V(global_x, global_y) == mouseposmap
+    
+    if showstatus then
+      local states = {}
+
+      if obj.is_bleeding then table.insert(states, {"bleed", "Bleeding"}) end
+      if obj.is_blessed then table.insert(states, {"bless", "Blessed"}) end
+      if obj.is_blind then table.insert(states, {"blind", "Blind"}) end
+      if obj.is_confused then table.insert(states, {"confused", "Confused"}) end
+      if obj.is_deaf then table.insert(states, {"deaf", "Deaf"}) end
+      if obj.is_drunk then table.insert(states, {"drunk", "Drunk"}) end
+      if obj.is_mute then table.insert(states, {"mute", "Mute"}) end
+      if obj.is_paralyzed then table.insert(states, {"para", "Paralyzed"}) end
+      if obj.is_poisoned then table.insert(states, {"poison", "Poisoned"}) end
+      if obj.is_sick then table.insert(states, {"sick", "Sick"}) end
+      if obj.is_sleeping then table.insert(states, {"sleeping", "Sleeping"}) end
+      if obj.is_slowed then table.insert(states, {"slowed", "Slowed"}) end
+      if obj.is_stunned then table.insert(states, {"stunned", "Stunned"}) end
+      if obj.is_berserk then table.insert(states, {"berserk", "Berserk"}) end
+      if obj.is_afraid then table.insert(states, {"afraid", "Afraid"}) end
+      if obj.is_boss then table.insert(states, {"../healthbar/hp_star", "Boss"}) end
+      local xpi = obj.experience_estimate
+      if xpi and showfullinfo then table.insert(states, {"mee_"..xpi, xplevelnames[xpi]}) end
+      if obj.name then table.insert(states, {"../healthbar/hp_companion", obj.name}) end
+      if obj.type and showfullinfo then table.insert(states, {nil, obj.type}) end
+      if obj.satiation_level == satiationlevelids.H_BLOATED then table.insert(states, {"bloated", "Bloated"}) end
+      if obj.satiation_level == satiationlevelids.H_SATIATED then table.insert(states, {"satiated", "Satiated"}) end
+      if obj.satiation_level == satiationlevelids.H_HUNGRY then table.insert(states, {"hungry", "Hungry"}) end
+      if obj.satiation_level == satiationlevelids.H_VERY_HUNGRY then table.insert(states, {"hungry!", "Very Hungry"}) end
+      if obj.satiation_level == satiationlevelids.H_STARVING then table.insert(states, {"starving", "Starving"}) end
+      if obj.burden_level == burdenlevelids.BL_BURDENED then table.insert(states, {"burdened", "Burdened"}) end
+      if obj.burden_level == burdenlevelids.BL_STRAINED then table.insert(states, {"strained", "Strained"}) end
+      if obj.burden_level == burdenlevelids.BL_VERY_STRAINED then table.insert(states, {"strained!", "Strained!"}) end
+      if obj.burden_level == burdenlevelids.BL_OVERBURDENED then table.insert(states, {"overburdened", "Overburdened"}) end
+      
+      local maxlen = 0
+      if showfullinfo then
+        for k,v in pairs(states) do
+          maxlen = math.max(maxlen, LabelRenderer:apply(v[2]).size.x)
+          end
+        bbar = tilemerge(bbar,
+          tiletransform(tileshade(0),
+            -(maxlen+10-bsize.x)/2/bsize.x, statat+1.25-13*(#states)/bsize.y, (maxlen + 10)/bsize.x, 13*#states/bsize.y)
+          )
+        end
+
+      for k,v in pairs(states) do
+        local tt
+        if v[1] then
+          local name = "nterface/status/"..v[1]
+          tt = adomtile(name, transAlpha, 0, 0)
+          local ts = tiles[name].size
+          if ts.x ~= 7 then
+            tt = tiletransform(tt, (7-ts.x)/14, (7-ts.y)/14, ts.x/7, ts.y/7)
+            end
+        else
+          tt = fget(Font, gch(MA))
+          tt = tilerecolor(tt, gco(MA))
+          tt = tilemerge(tilefill(0), tt)
+          tt = tiletransform(tt, 0, -0.5, 1, 16/7)
+          end
+
+        -- t = tiletransform(t, (4/64) * (2*k-#states-1), -1, 7/64, 1)
+        if showfullinfo then
+          local rn = LabelRenderer:apply(v[2]).ttrans
+          tt = tilemerge(tt, rn)
+          tt = tiletransform(tt, 0.4-maxlen/bsize.x/2, statat, 7/bsize.x, bsize.y/7)
+          statat = statat - 13/bsize.y
+        else
+          tt = tiletransform(tt, 0.5 + (4/bsize.x) * (2*k-#states-1.5), statat, 7/bsize.x, bsize.y/7)
+          end
+        bbar = tilemerge(bbar, tt)
+        end
+
+      if obj.name then 
+        table.insert(states, {"../healthbar/hp_companion", obj.name}) 
+        end
+
+      end
+
+    if showalignment and obj.alignment and obj.being_type ~= beingtypes.PC then
+      local name
+      if obj.alignment == alignmentids.CHAOTIC then name = "chaotic"
+      elseif obj.alignment == alignmentids.NEUTRAL then name = "neutral"
+      else name = "lawful"
+      end
+
+      local t = adomtile("nterface/alignment/"..name, transAlpha, 0, 0)
+      t = tiletransform(t, 0.5 + (4/bsize.x) * 3.5, (bsize.y+2)/7, 7/bsize.x, bsize.y/7)
+      bbar = tilemerge(bbar, t)
+      end
+    end
+
+    local bar2 = tiletransform(bbar, .5-bsize.x/tsx/2, hpos, bsize.x/tsx, bsize.y/tsy)
+    return 
+      tilemerge4(
+        simg,
+        tilespatial(bar2, spFlat), 
+        tilespatial(tiletransform(bar2, 0,1,1,1), spIItem),
+--      monster3d(tiletransform(bbar, 0.25,0.5,1,0.1), -.5, 1, hpos+1, 1)
+        monster3d(bbar, 0, 0.05, 1, 0.1)
+        )
+    end
+
+pcracenames = {"human", "troll", "helf", "gelf", "delf", "dwarf", "gnome", "hurth", "orc", "drake", "melf", "ratling"}
+cwar = "w"
+cmag = "m"
+crog = "r"
+pcclassnames = {cwar, cwar, crog, crog, crog, cmag, cmag, crog, cmag, cmag, cwar, crog,
+  crog, crog, cmag, cwar, cmag, cmag, cmag, cwar, cwar, cwar}
+nameok = {}
+
+sexes = {"m", "f"}
+
+issmallrace = {}
+issmallrace[pcraceids.DWARF] = true
+issmallrace[pcraceids.GNOME] = true
+issmallrace[pcraceids.HOBBIT] = true
+
+onehandnames = {}
+twohandnames = {}
+backmissilenames = {}
+frontmissilenames = {}
+
+-- look at adom-tables.noe, table "itemweapontypeids"
+onehandnames[itemweapontypeids.IWT_NONE] = "unarmed"
+onehandnames[itemweapontypeids.IWT_DAGGER] = "dagger"
+onehandnames[itemweapontypeids.IWT_KNIFE] = "knife"
+onehandnames[itemweapontypeids.IWT_CLUB] = "club"
+onehandnames[itemweapontypeids.IWT_SWORD] = "sword"
+onehandnames[itemweapontypeids.IWT_SHORTSWORD] = "shortsword"
+onehandnames[itemweapontypeids.IWT_BROADSWORD] = "broadsword"
+onehandnames[itemweapontypeids.IWT_SABRE] = "sabre"
+onehandnames[itemweapontypeids.IWT_RAPIER] = "rapier"
+onehandnames[itemweapontypeids.IWT_SCIMITAR] = "scimitar"
+onehandnames[itemweapontypeids.IWT_SICKLE] = "sickle"
+onehandnames[itemweapontypeids.IWT_AXE] = "axe"
+onehandnames[itemweapontypeids.IWT_HANDAXE] = "handaxe"
+onehandnames[itemweapontypeids.IWT_PICKAXE] = "pickaxe"
+onehandnames[itemweapontypeids.IWT_FLAIL] = "flail"
+onehandnames[itemweapontypeids.IWT_MORNINGSTAR] = "morningstar"
+onehandnames[itemweapontypeids.IWT_MACE] = "mace"
+onehandnames[itemweapontypeids.IWT_HAMMER] = "hammer"
+--onehandnames[itemweapontypeids.IWT_ITEM] = "unarmed"
+onehandnames[itemweapontypeids.IWT_SPEAR] = "spear"
+onehandnames[itemweapontypeids.IWT_SHORT_SPEAR] = "shortspear"
+onehandnames[itemweapontypeids.IWT_SCALPEL] = "scalpel"
+onehandnames[itemweapontypeids.IWT_WHIP] = "whip"
+onehandnames[itemweapontypeids.IWT_SMALL_SHIELD] = "shield"
+onehandnames[itemweapontypeids.IWT_MEDIUM_SHIELD] = "shield_medium"
+onehandnames[itemweapontypeids.IWT_LARGE_SHIELD] = "shield_large"
+onehandnames[itemweapontypeids.IWT_TOWER_SHIELD] = "shield_tower"
+frontmissilenames[itemweapontypeids.IWT_SLING] = "sling"
+frontmissilenames[itemweapontypeids.IWT_THROWING_CLUB] = "club_throw"
+backmissilenames[itemweapontypeids.IWT_CROSSBOW] = "crossbow"
+backmissilenames[itemweapontypeids.IWT_SHORTBOW] = "shortbow"
+backmissilenames[itemweapontypeids.IWT_LONGBOW] = "longbow"
+backmissilenames[itemweapontypeids.IWT_SCURGAR] = "scurgari"
+backmissilenames[itemweapontypeids.IWT_BOOMERANG] = "boomerang"
+twohandnames[itemweapontypeids.IWT_STAFF] = "staff"
+twohandnames[itemweapontypeids.IWT_HALBERD] = "halberd"
+twohandnames[itemweapontypeids.IWT_TRIDENT] = "trident"
+twohandnames[itemweapontypeids.IWT_SCYTHE] = "scythe"
+twohandnames[itemweapontypeids.IWT_2HANDED_CLUB] = "club"
+twohandnames[itemweapontypeids.IWT_2HANDED_AXE] = "axe"
+twohandnames[itemweapontypeids.IWT_2HANDED_SWORD] = "sword"
+twohandnames[itemweapontypeids.IWT_2HANDED_HAMMER] = "hammer"
+twohandnames[itemweapontypeids.IWT_2HANDED_SPEAR] = "longspear"
+
+function saturate(c)
+  local c1 = bAND(c, 0xFF)
+  local c2 = bAND(c, 0xFF00) / 256
+  local c3 = bAND(c, 0xFF0000) / 256 / 256
+  
+  local min = math.min(c1, c2, c3)
+  c1 = c1 - min
+  c2 = c2 - min
+  c3 = c3 - min
+
+  local max = math.max(c1, c2, c3)
+  c1 = math.floor(c1 * 255 / max)
+  c2 = math.floor(c2 * 255 / max)
+  c3 = math.floor(c3 * 255 / max)
+
+  return c1 + c2*256 + c3 * 256 * 256
+  end
+
+function getpctile(obj)
+  local name = pcracenames[PCData.race + 1]
+  name = name.."_"..sexes[PCData.sex + 1]..pcclassnames[PCData.class + 1]
+
+  name = "PC/modular/body/"..name
+  local img = adomtile(name, transAlpha)
+
+  obj.size = tiles[name].size
+
+  local lwt = PCData.body_part[1 + bodypartids.LEFT_HAND].item_weapon_type or -1
+  local rwt = PCData.body_part[1 + bodypartids.RIGHT_HAND].item_weapon_type or -1
+
+  local mwt1 = PCData.body_part[1 + bodypartids.MISSILE_WEAPON].item_weapon_type or -1
+  local mwt2 = PCData.body_part[1 + bodypartids.MISSILES].item_weapon_type or -1
+
+  local dir = obj.direction
+  local mirrored = dir and dir > 3
+  local keepmirrorb = function(x) return x end
+  local keepmirrorf = function(x) return x end
+  if mirrored then 
+    local x = lwt
+    lwt = rwt
+    rwt = x
+    function keepmirrorb(x) return tiletransform(x, 0.9, 0, -1, 1) end
+    end
+
+  -- do not draw throwing clubs while mirrored
+  if mwt2 == itemweapontypeids.IWT_THROWING_CLUB and mirrored then
+    mwt2 = 0
+    end
+
+  local twt = twohandnames[lwt] or twohandnames[rwt]
+
+  local adjuster = adomtile
+
+  if issmallrace[PCData.race] then
+    obj.size.hbarat = 90
+    function adjuster(x) return tiletransform(adomtile(x), 0, 3/obj.size.y, 1, 1) end
+  else
+    obj.size.hbarat = 105
+    end
+
+--- behind the character, from closest to farthest ---
+
+  -- DRAW BACK HAND --
+
+  if twt then
+    img = tilemerge(adjuster("PC/modular/arms/2H_left"), img)
+  else
+    if onehandnames[lwt] then
+      img = tilemerge(adjuster("PC/modular/arms/lhand_"..onehandnames[lwt]), img)
+    else
+      img = tilemerge(adjuster("PC/modular/arms/lhand_unarmed"), img)
+      end
+    end
+
+  -- DRAW CLOAK --
+
+  local cloak = PCData.body_part[1 + bodypartids.CLOAK].item or -1
+  if cloak > 0 then
+
+    local t = tiles["items/item"..cloak].pic
+    local p = getpixel(t, 19, 20)
+
+    p = saturate(p)
+
+    -- print("i = "..cloak.." p = "..ashex(p))
+    
+    local cloak = 
+      "PC/modular/accessories/cloak" .. (issmallrace[PCData.race] and "_small" or "")
+
+    local cloakimg = adomtile(cloak)
+    cloakimg = tilerecolor(cloakimg, p)
+    img = tilemerge(cloakimg, img)
+    end
+
+  -- DRAW BACK MISSILE --
+
+  if backmissilenames[mwt1] then
+    img = tilemerge(keepmirrorb(adjuster("PC/modular/accessories/"..backmissilenames[mwt1])), img)
+    end
+
+  if backmissilenames[mwt2] then
+    img = tilemerge(keepmirrorb(adjuster("PC/modular/accessories/"..backmissilenames[mwt2])), img)
+    end
+
+--- in front of the character, from closest to farthest ---
+
+  -- DRAW FRONT MISSILE --
+
+  if frontmissilenames[mwt1] then
+    img = tilemerge(img, keepmirrorf(adjuster("PC/modular/accessories/"..frontmissilenames[mwt1])))
+    end
+
+  if frontmissilenames[mwt2] then  
+    img = tilemerge(img, keepmirrorf(adjuster("PC/modular/accessories/"..frontmissilenames[mwt2])))
+    end
+
+  -- DRAW FRONT HAND --
+
+  if twt then
+    img = tilemerge(img, adjuster("PC/modular/arms/2H_"..twt))
+  else
+    if onehandnames[rwt] then
+      img = tilemerge(img, adjuster("PC/modular/arms/rhand_"..onehandnames[rwt]))
+    else
+      img = tilemerge(img, adjuster("PC/modular/arms/rhand_unarmed"))
+      end
+    end
+
+  return img
+  end
+
+SPECIAL_TREE = -2
+SPECIAL_GRASS = -3
+function adommon(obj)
+
+  local s = obj.s
+  local bt = obj.being_type
+
+  local drawplayer = 
+    (bt == beingtypes.PC) or 
+    (bt == beingtypes.DOPPLEGANGER) or
+    (bt == beingtypes.DOPPLEGANGER_LORD) or
+    (bt == beingtypes.DOPPLEGANGER_KING)
+
+  -- Doppelgangers
+  if bt and not drawplayer then
+    s = monpic(bt)
+    end
+  
+  if bt == beingtypes.PC then obj.uid = -1 end
+
+  local img
+
+  if obj.tile then
+    img = obj.tile
+    imgsiz = obj.size
+  elseif drawplayer then
+    img = getpctile(obj)
+    imgsiz = obj.size
+  else
+    img = adomtile(s, transAlpha)
+
+    if tiles[s].pic ~= 0 then
+      imgsiz = tiles[s].size
+    else
+      imgsiz = {x=64, y=48}
+    end
+    end
+  
+  local img2 
+  
+  if truetactical() then
+    local dy = -0.25
+    dy = dy - imgsiz.y/tsy + 1.50
+    if obj.grass then dy = 0.55 end
+    if obj.tree then dy = -1.5 end
+    img2 = tiletransform(img, 
+    0.5-imgsiz.x/tsx/2, dy, 
+    imgsiz.x/tsx, imgsiz.y/tsy)
+  else
+    img2 = tiletransform(img, 
+    0.5-imgsiz.x/tsx/2, 1-imgsiz.y/tsy, 
+    imgsiz.x/tsx, imgsiz.y/tsy)
+    end
+  
+  local dir = obj.direction
+  if dir and dir > 3 then img2 = tiletransform(img2, 1, 0, -1, 1) end
+
+  -- Karmics
+  if (bt and ((bt == beingtypes.ANCIENT_KARMIC_WYRM) or
+		   (bt >= beingtypes.KARMIC_BABY_DRAGON and bt <= beingtypes.KARMIC_LIZARD))) then
+    if not Ch.karmic then Ch.karmic = math.random(1,96) end
+    img2 = tilecol(img2, ((math.floor(getticks() / 100)+Ch.karmic) * 16) % 1536, recHue)
+    end
+
+  if obj.is_visible == false then
+    -- version 1
+    -- img2 = tilecol(img2, 0xFFFFFF, recDefault)
+    -- img2 = tilecol(img2, 0x60FFFFFF, recMult)
+
+    -- version 2
+    img2 = tilecol(img2, 0x80000000, recMult)
+    img2 = tilecol(img2, 0, recHue)
+    end
+  
+  if obj.is_ghost then
+    img2 = tilecol(img2, 0x90FFFFFF, recMult)
+    end
+  
+  img2 = colorwall(img2)
+
+  -- add animation(s) on top
+  local anim = render_anims(global_x, global_y, M, "being")
+  if (anim) then img2 = tilemerge(img2, anim) end
+
+  hpos = truetactical() and math.min(0.2, 1.4-imgsiz.y/tsy) or 1-(imgsiz.hbarat or imgsiz.y)/tsy
+
+  img = tilemerge3(
+    tilespatial(img2, spFlat),
+    tilespatial(tiletransform(img2, 0, 1, 1, 1), spIItem), 
+    (special == SPECIAL_TREE) and monster3d(img, -treescaling/2, treescaling * 24/imgsiz.y - treescaling + 1, treescaling, treescaling)
+    or monster3d(img, 0, 0, 1, imgsiz.y/(imgsiz.y-tsy/2))
+    )
+  -- if tactical and (special>0 or special == -1) then img = tilemerge(img, adomtile("nterface/tactical/frame", transAlpha)) end
+  if obj.health then img = tilemerge(img, drawhealthbar(obj, hpos)) end
+
+  -- add animation(s) on top
+  local anim = render_anims(global_x, global_y, M, "healthbar")
+  if (anim) then img = tilemerge(img, tiletransform(anim,0,hpos+0.7,1,1)) end
+  
+  return img
+  end
+
+function adomgrass()
+  local dir = ts.dir
+  if ts == tilesets.dungeon then
+    dir = "maps/outdoor/"
+    end
+  return adommon({grass = true, s = dir.."decals/char_g_1"})
+  end
+
+treescaling = 4
+
+function monpic(id)
+  local ret = 0
+
+  function chkname(s)
+    if (ret==0) and tiles[s].pic > 0 then 
+      ret=s
+    elseif (ret==0) and gfx_exists(s) then
+      ret=s
+      end
+    end
+
+  -- priest of dwarven city
+  if id == beingtypes.M_PRIEST then
+    local race = pcracenames[PCData.race + 1]
+    id = "misc/"..race.."_p"
+    end
+
+  chkname("NPC/"..id)
+  
+  if ret == 0 then
+    ret = "NPC/"..id
+    tiles[ret].t = tilerecolor(bord(gch(MA)), gco(MA))
+    end
+
+  return ret
+  end
+

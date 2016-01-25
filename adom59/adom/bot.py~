@@ -1,0 +1,4 @@
+import pexpect
+child = pexepct.spawn("./adom")
+child.send(' ')
+child.interact()

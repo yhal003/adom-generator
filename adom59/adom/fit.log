@@ -1,0 +1,61 @@
+
+
+*******************************************************************************
+Fri Nov 13 11:40:41 2015
+
+
+FIT:    data read from 'l2.txt'
+        format = z
+        #datapoints = 49
+        residuals are weighted equally (unit weight)
+
+function used for fitting: f(x)
+
+
+*******************************************************************************
+Fri Nov 13 11:41:01 2015
+
+
+FIT:    data read from 'l2.txt'
+        format = z
+        #datapoints = 49
+        residuals are weighted equally (unit weight)
+
+function used for fitting: f(x)
+fitted parameters initialized with current variable values
+
+
+
+ Iteration 0
+ WSSR        : 3.37049e+15       delta(WSSR)/WSSR   : 0
+ delta(WSSR) : 0                 limit for stopping : 1e-05
+ lambda	  : 604.349
+
+initial set of free parameter values
+
+a               = 1
+b               = 1
+c               = 1
+
+After 6 iterations the fit converged.
+final sum of squares of residuals : 4.31407e+12
+rel. change during last iteration : -6.06645e-10
+
+degrees of freedom    (FIT_NDF)                        : 46
+rms of residuals      (FIT_STDFIT) = sqrt(WSSR/ndf)    : 306242
+variance of residuals (reduced chisquare) = WSSR/ndf   : 9.37842e+10
+
+Final set of parameters            Asymptotic Standard Error
+=======================            ==========================
+
+a               = 13502.8          +/- 244.7        (1.812%)
+b               = -238337          +/- 1.215e+04    (5.097%)
+c               = 654925           +/- 1.261e+05    (19.25%)
+
+
+correlation matrix of the fit parameters:
+
+               a      b      c      
+a               1.000 
+b              -0.967  1.000 
+c               0.730 -0.856  1.000 

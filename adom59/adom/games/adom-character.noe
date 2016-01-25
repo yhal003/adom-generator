@@ -1,0 +1,349 @@
+-- character creation
+
+function detectUI()
+
+  if currentscreen == nil then
+    local line1 = getline(1)
+    local line2 = getline(2)
+    if string.find(line2, "You are born", 1, true) then
+      openstarsign()
+      end
+  
+    if string.find(line2, "[f]ate decide", 1, true) then
+      openfate()
+      end
+  
+    if string.find(line1, "Choose a sex", 1, true) then
+      opencharacter("sex")
+      end
+
+    if string.find(line1, "Choose a race", 1, true) then
+      opencharacter("race")
+      end
+
+    if string.find(line1, "Choose a profession", 1, true) then
+      opencharacter("profession")
+      end
+    end
+  end
+
+function switchUI()
+  openscreen(nil)
+  detectUI()
+  if currentscreen and currentscreen.fullshow then 
+    return currentscreen.fullshow() 
+    end
+  return false
+  end
+
+function openstarsign(ev)
+
+  local t = getticks() + 2500
+  local m = newmodalwindow("starsign")
+  
+  function m.fullshow()
+    if not string.find(getline(2), "You are born", 1, true) then
+      return switchUI()
+      end
+    if not graphicalUI() then return false end
+    
+    drawtitleimage(m)
+
+    local all_star_signs = adom_nelib_get_all_star_signs()
+    local misc_data = adom_nelib_get_tome_of_knowledge_pc_overview().misc_data
+    local mysign = 1 + misc_data.star_sign_of_birth
+
+    if t and getticks() < t then
+      local u = (getticks() - t) / 1500
+      u = u * u
+
+      for k=1,12 do
+        local sign_name = string.lower(all_star_signs[(k+mysign+5)%12+1].star_sign_name)
+        drawnonscaled(tiles["nterface/main/starsigns/"..sign_name], 
+          xscreen.ctr + V(-math.sin(k*math.pi/6 + u), math.cos(k*math.pi/6 + u)) * 200,
+          align_center)
+        end
+      
+      return true
+      end
+      
+    local b = drawgenericbox(xscreen.ctr, V(-.5, -.5))
+    
+    for k=1,12 do
+      local sign_name = string.lower(all_star_signs[(k+mysign+5)%12+1].star_sign_name)
+      drawnonscaled(tiles["nterface/main/starsigns/"..sign_name], 
+        xscreen.ctr + V(-math.sin(k*math.pi/6), math.cos(k*math.pi/6)) * 160,
+        align_center,
+        function(x) return tilecol(x, (k==6 and 0xFF000000 or 0xFFE0A000), recMult) end
+        )
+      end
+
+    local ss = all_star_signs[mysign]
+    local day = misc_data.day_of_birth
+    local dob = misc_data.day_in_month_of_birth
+
+    local text = 
+      style_header.."\n\n\n"..ss.star_sign_name.."\n"..
+      style_center.."You are born in the month of the "..ss.star_sign_name.." on day "..dob.." (day "..day.." of the year).\n"..
+      style_boldcenter.."\nAspects: "..ss.star_sign_aspects.."\n"..
+      style_header.."\nEffects\n"..
+      style_normal..ss.star_sign_effects.."\n"
+
+    renderlongtext(AlegreyaRegular, 16, text, 0xFF000000, Gfx, b.content)
+        
+    return true
+    end
+  
+  function m.handlemouse(ev)
+    if not graphicalUI() then return false end
+    if t and ev.type == evMouseUp then t = nil return true end
+    return false
+    end
+
+  function m.handlekey(ev)
+    if not graphicalUI() then return false end
+    if t and ev.type == evKeyDown then t = nil return true end
+    return false
+    end
+
+  openscreen(m)
+  return m
+  end
+
+local config_y = xscreen and xscreen.bot.y or 0
+
+function drawconfig()
+  local y = 0
+  while y < 10 and not string.find(getline(24-y), "---") do y = y + 1 end
+  if y == 10 then return end
+  y = y + 1
+  IMGL = renewscreen(IMGL, 80, y)
+  scrcopy(S, 0, 25-y, IMGL, 0, 0, 80, y, tmap_shade)
+  local zy = y
+  if y > 2 and xscreen.bot.y <= 500 and not string.find(getline(2), "[f]ate decide", 1, true) then zy = 1 end
+  config_y = xscreen.bot.y - zy * guifontsize.y
+  V.drawscreen(Gfx, IMGL, V(xscreen.ctr.x - 40 * guifontsize.x, config_y), guifontsize)
+  end
+
+function openfate(ev)
+
+ config_y = xscreen.bot.y
+  local m = newmodalwindow("fate")
+  
+  function m.fullshow()
+    if not string.find(getline(2), "[f]ate decide", 1, true) then
+      return switchUI()
+      end
+    if not graphicalUI() then return false end
+    
+    drawtitleimage(m)
+    drawconfig()
+    
+    local boxctr = V(xscreen.ctr.x, config_y/2)
+    
+    local b = drawinfobox(boxctr, V(-.5, -.5))
+    
+    renderlongtext(AlegreyaRegular, 16,   
+      style_header.."Character generation type\n\n"..
+      style_normal.."Do you want a specific character, or let Fate decide?"
+      , 0xFF000000, Gfx, b.content)
+    
+    m.specific = drawshortbutton("Specific", "S", nil, rectat(b.content, V(0.2, 1)), V(-.5, -.5))
+    m.fate = drawshortbutton("Fate", "F", nil, rectat(b.content, V(0.8, 1)), V(-.5, -.5))
+        
+    drawconfig()
+    return true
+    end
+  
+  function m.handlemouse(ev)
+    if not graphicalUI() then return false end
+    if buttonclicked(ev, m.specific) then
+      nsendtext("s")
+    elseif buttonclicked(ev, m.fate) then
+      nsendtext("f")
+    elseif ev.type == evMouseDown and ev.y >= config_y then
+      nsendtext("!")
+      end
+    return true
+    end
+
+  openscreen(m)
+  return m
+  end
+
+-- caches the descriptions (they never change)
+race_descriptions = nil
+class_descriptions = nil
+
+function opencharacter(what)
+
+  config_y = xscreen.bot.y
+  local m = newmodalwindow("char")
+  
+  function m.fullshow()
+    if not string.find(getline(1), "Choose a "..what, 1, true) then
+      return switchUI()
+      end
+    if not graphicalUI() then return false end
+    
+    drawtitleimage(m)
+    drawconfig()
+    
+    local y = math.max(config_y/2, tiles["nterface/main/select_info"].size.y/2)
+    
+    local selctr = V(xscreen.ctr.x - 200, y)
+    local infoctr = V(xscreen.ctr.x + 200, y)
+    
+    local btn = drawselectbuttons(selctr, V(-.5, -.5))
+    
+    local inf = drawselectinfobox(infoctr, V(-.5, -.5))
+
+    local misc_data = adom_nelib_get_tome_of_knowledge_pc_overview().misc_data
+    
+    rendertext(GermaniaOne, 18, "Choose a "..what, 0xFFFFFFFF, Gfx, btn.title, align_center)
+    
+    m.options = {}
+    
+    local function gettitle(t, key)
+      return 
+        style_header..t.."\n"..style_center.."\v#C06000hotkey: on["..key.."]\n"..style_normal
+      end
+    
+    local function addoption(text, icon, desc, key)
+      table.insert(m.options, {text = text, icon = icon, desc = gettitle(text,key)..desc, key = key})
+      end
+    
+    local function drawpc(x)
+      PCData = {}
+      if x.class and class_descriptions then
+        local ci = class_descriptions[1 + (x.class or 0)]
+        PCData.body_part = ci.body_part
+      else
+        PCData.body_part = {}
+        PCData.body_part[1 + bodypartids.LEFT_HAND] = {item_weapon_type = -1}
+        PCData.body_part[1 + bodypartids.RIGHT_HAND] = {item_weapon_type = -1}
+        PCData.body_part[1 + bodypartids.MISSILE_WEAPON] = {item_weapon_type = -1}
+        PCData.body_part[1 + bodypartids.MISSILES] = {item_weapon_type = -1}
+        PCData.body_part[1 + bodypartids.CLOAK] = {item = -1}
+        end
+      PCData.sex = misc_data.sex or 1
+      PCData.race = x.race or (misc_data.race or 0)
+      PCData.class = x.class or 0
+      local obj = {direction = 0}
+      
+      local img = getpctile(obj)
+
+      drawnonscaled({t = img, size = obj.size}, inf.char, align_center)
+      end
+    
+    local function addoptionpc(text, x, desc, key)
+      x.text = text
+      x.desc = gettitle(text,key)..desc
+      x.key = key
+      x.func = drawpc
+      table.insert(m.options, x)
+      end
+    
+    if what == "sex" then    
+      addoption("male", tiles["nterface/main/ico_male_glow"], "Male characters are slightly stronger.", "m")
+      addoption("female", tiles["nterface/main/ico_female_glow"], "Female characters are more agile.", "f")
+      addoption("random", tiles["NPC/178"], "You want ADOM to choose for you.", "*")
+    elseif what == "race" then
+      -- reset class descriptions, they depend on the race selection
+      class_descriptions = nil
+      if race_descriptions == nil then
+        race_descriptions = adom_nelib_get_all_races()
+        end
+      local r = race_descriptions
+      for i=1,r.max_race do
+        addoptionpc(r[i].race_name, {race=i-1}, (r[i].race_description_short or "?"), string.char(96+i))
+        end
+      addoption("random", tiles["NPC/178"], "Choose a random race.", "*")
+    elseif what == "profession" then
+      if class_descriptions == nil then
+        class_descriptions = adom_nelib_get_all_classes()
+        end
+      local r = class_descriptions
+      for i=1,r.max_class do
+        addoptionpc(r[i].class_name or "?", {class=i-1}, (r[i].class_description_short or "?"), string.char(96+i))
+        end
+      addoption("random", tiles["NPC/178"], "Choose a random profession.", "*")
+      end
+    
+    local txt = style_center.."\n\nPlease select one of the options."
+    local icon = nil
+
+    local buttonsize = tiles["nterface/main/btn_select_off"].size - V(0,8)
+
+    tiles["nterface/main/btn_select_off"].buttonsize = buttonsize
+    tiles["nterface/main/btn_select_off"].captionoffset = V(0,4)
+
+    for k,v in pairs(m.options) do
+      v.button = drawbutton("nterface/main/btn_select", 
+        rectat(btn.content, V((k-1)%3 / 3 + 1/6, math.floor((k-1)/3) / 10 + 1/20)), 
+        align_center
+        )
+      buttoncaption(v.button, GermaniaOne, 18, v.text)
+      if v.button.over or v.button.down then
+        txt = v.desc
+        icon = v.icon or (v.func and v.func(v))
+        end
+      end
+
+    if what ~= "sex" then
+      m.back = drawshortbutton("- Back", "-", nil, rectat(btn.content, V(0.5, 1)), V(-.5, -.3))
+      if m.back.over or m.back.down then
+        txt = gettitle("Back", "-").."Change one of the previous selections."
+        end
+      end
+    
+    renderlongtext(AlegreyaRegular, 16,   
+      txt, 
+      0xFF000000, Gfx, inf.content)
+    
+    -- rendertext(GermaniaOne, 18, "???", 0xFF000000, Gfx, inf.desc, align_center)
+    
+    if icon then
+      drawnonscaled(icon, inf.char, align_center)
+      end
+
+    local dz = math.floor(getticks() / 100) % 8 + 1
+    local dx = 0 -- math.random(-2, 2)
+    local dy = 0 -- math.random(-2, 2)
+
+    drawnonscaled(tiles["nterface/main/flame/frame0"..dz], inf.char + V(49,-26), align_center)
+    
+    local function randomtrans(x) 
+      local c = math.random(12,17) * 15 * 0x1000000 + 0xFFFFFF
+      return tilecol(x, c, recMult)
+      end
+    
+    drawnonscaled(tiles["nterface/main/flame/glow_floor"], inf.char + V(49+dx,25), align_center, randomtrans)
+    drawnonscaled(tiles["nterface/main/flame/glow"], inf.char + V(49+dx,-26+dy), align_center, randomtrans)
+
+    local sign_name = string.lower(misc_data.star_sign_of_birth_name)
+    
+    drawnonscaled(tiles["nterface/main/starsigns/"..sign_name], inf.char + V(-130,-50))
+
+    return true
+    end
+  
+  function m.handlemouse(ev)
+    if not graphicalUI() then return false end
+    for k,v in pairs(m.options or {}) do
+      if buttonclicked(ev, v.button) then 
+        nsendtext(v.key)
+        end
+      end
+    if buttonclicked(ev, m.back) then
+      nsendtext("-")
+      end
+    if ev.type == evMouseDown and ev.y >= config_y then
+      nsendtext("!")
+      end
+    return true
+    end
+
+  openscreen(m)
+  return m
+  end

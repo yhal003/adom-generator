@@ -1,0 +1,297 @@
+orc corpse                                                       
+goblin slavemaster corpse                                         
+large bat corpse                                                  
+kobold shaman corpse                                              
+orc corpse                                                       
+orc scorcher corpse                                              
+large bat corpse                                                  
+orc scorcher corpse                                              
+goblin slavemaster corpse                                         
+orc corpse                                                       
+hobgoblin corpse                                                 
+orc corpse                                                       
+large orc corpse                                                 
+large orc corpse                                                 
+ghul corpse                                                      
+ogre corpse                                                      
+orc corpse                                                       
+large bat corpse                                                  
+goblin rockthrower corpse                                         
+rat corpse                                                        
+giant lizard corpse                                              
+dwarf corpse                                                      
+kobold chieftain corpse                                           
+goblin rockthrower corpse                                         
+fire beetle corpse                                               
+blink dog corpse                                                 
+orc corpse                                                       
+bandit corpse                                                    
+huge bat corpse                                                  
+ogre corpse                                                      
+bandit corpse                                                    
+kobold corpse                                                     
+lizard man corpse                                                
+orc corpse                                                       
+black hurthling corpse                                           
+lizard man corpse                                                
+orc corpse                                                       
+giant rat corpse                                                  
+goblin chieftain corpse                                           
+large kobold corpse                                               
+wererat corpse                                                   
+goblin slavemaster corpse                                         
+goblin slavemaster corpse                                         
+orc corpse                                                       
+rat corpse                                                        
+large bat corpse                                                  
+orc corpse                                                       
+orc scorcher corpse                                              
+orc corpse                                                       
+large bat corpse                                                  
+giant rat corpse                                                  
+kobold chieftain corpse                                           
+bandit corpse                                                    
+orc scorcher corpse                                              
+lizard man corpse                                                
+orc corpse                                                       
+huge bat corpse                                                  
+ghul corpse                                                      
+orc corpse                                                       
+orc corpse                                                       
+goblin slavemaster corpse                                         
+lizard man corpse                                                
+large bat corpse                                                  
+orc corpse                                                       
+large bat corpse                                                  
+lizard man corpse                                                
+goblin corpse                                                     
+ghul corpse                                                      
+raider corpse                                                    
+large orc corpse                                                 
+jackal corpse                                                     
+giant lizard corpse                                              
+orc corpse                                                       
+rat corpse                                                        
+large orc corpse                                                 
+black hurthling corpse                                           
+giant rat corpse                                                  
+huge bat corpse                                                  
+large bat corpse                                                  
+big dog corpse                                                    
+lizard man corpse                                                
+large spider corpse                                               
+swordsman corpse                                                 
+hobgoblin corpse                                                 
+large bat corpse                                                  
+orc corpse                                                       
+gnoll corpse                                                     
+orc corpse                                                       
+goblin rockthrower corpse                                         
+giant bat corpse                                                 
+raider corpse                                                    
+giant bat corpse                                                 
+gnoll corpse                                                     
+orc corpse                                                       
+goblin rockthrower corpse                                         
+goblin corpse                                                     
+ghul corpse                                                      
+gnoll corpse                                                     
+orc corpse                                                       
+goblin corpse                                                     
+kobold shaman corpse                                              
+kobold shaman corpse                                              
+goblin rockthrower corpse                                         
+dwarf corpse                                                      
+goblin rockthrower corpse                                         
+bugbear corpse                                                   
+lizard man corpse                                                
+gnoll corpse                                                     
+kobold shaman corpse                                              
+giant rat corpse                                                  
+giant bat corpse                                                 
+wolf corpse                                                      
+giant lizard corpse                                              
+claw bug corpse                                                   
+gnoll corpse                                                     
+kobold corpse                                                     
+giant bat corpse                                                 
+goblin slavemaster corpse                                         
+goblin chieftain corpse                                           
+giant rat corpse                                                  
+goblin chieftain corpse                                           
+giant rat corpse                                                  
+ghul corpse                                                      
+giant bat corpse                                                 
+giant rat corpse                                                  
+bugbear corpse                                                   
+large bat corpse                                                  
+large bat corpse                                                  
+dwarf corpse                                                      
+orc corpse                                                       
+lizard man corpse                                                
+orc scorcher corpse                                              
+large kobold corpse                                               
+giant lizard corpse                                              
+goblin corpse                                                     
+goblin corpse                                                     
+goblin corpse                                                     
+giant rat corpse                                                  
+ratling thief corpse                                             
+giant rat corpse                                                  
+bugbear corpse                                                   
+large orc corpse                                                 
+ogre corpse                                                      
+kobold corpse                                                     
+orc corpse                                                       
+goblin rockthrower corpse                                         
+goblin rockthrower corpse                                         
+rat corpse                                                        
+orc scorcher corpse                                              
+ratling thief corpse                                             
+goblin slavemaster corpse                                         
+kobold chieftain corpse                                           
+kobold corpse                                                     
+giant bat corpse                                                 
+ghul corpse                                                      
+rat corpse                                                        
+big dog corpse                                                    
+goblin chieftain corpse                                           
+goblin slavemaster corpse                                         
+goblin corpse                                                     
+orc corpse                                                       
+large bat corpse                                                  
+goblin rockthrower corpse                                         
+orc corpse                                                       
+giant bat corpse                                                 
+goblin rockthrower corpse                                         
+lizard man corpse                                                
+jackal corpse                                                     
+goblin slavemaster corpse                                         
+giant rat corpse                                                  
+huge bat corpse                                                  
+ogre corpse                                                      
+large orc corpse                                                 
+raider corpse                                                    
+bandit corpse                                                    
+hobgoblin corpse                                                 
+large orc corpse                                                 
+goblin rockthrower corpse                                         
+orc corpse                                                       
+orc corpse                                                       
+hobgoblin corpse                                                 
+goblin corpse                                                     
+large kobold corpse                                               
+lizard man corpse                                                
+giant bat corpse                                                 
+bandit corpse                                                    
+giant lizard corpse                                              
+cutpurse corpse                                                  
+rat corpse                                                        
+giant bat corpse                                                 
+kobold corpse                                                     
+goblin corpse                                                     
+orc corpse                                                       
+goblin rockthrower corpse                                         
+orc corpse                                                       
+goblin corpse                                                     
+orc corpse                                                       
+ghul corpse                                                      
+large orc corpse                                                 
+large bat corpse                                                  
+giant rat corpse                                                  
+giant centipede corpse                                            
+claw bug corpse                                                   
+goblin corpse                                                     
+giant rat corpse                                                  
+goblin chieftain corpse                                           
+goblin rockthrower corpse                                         
+goblin rockthrower corpse                                         
+giant bat corpse                                                 
+kobold shaman corpse                                              
+orc corpse                                                       
+goblin rockthrower corpse                                         
+huge bat corpse                                                  
+bugbear corpse                                                   
+ogre corpse                                                      
+large bat corpse                                                  
+gnoll corpse                                                     
+rat corpse                                                        
+rabid dog corpse                                                  
+orc scorcher corpse                                              
+kobold corpse                                                     
+raider corpse                                                    
+lizard man corpse                                                
+goblin rockthrower corpse                                         
+huge bat corpse                                                  
+goblin rockthrower corpse                                         
+gnoll corpse                                                     
+wolf corpse                                                      
+giant rat corpse                                                  
+goblin slavemaster corpse                                         
+fire beetle corpse                                               
+giant lizard corpse                                              
+swordsman corpse                                                 
+kobold corpse                                                     
+orc corpse                                                       
+goblin rockthrower corpse                                         
+rabid dog corpse                                                  
+orc corpse                                                       
+bugbear corpse                                                   
+hobgoblin corpse                                                 
+goblin corpse                                                     
+orc corpse                                                       
+large bat corpse                                                  
+large kobold corpse                                               
+large orc corpse                                                 
+goblin rockthrower corpse                                         
+wild cat corpse                                                   
+orc corpse                                                       
+kobold chieftain corpse                                           
+rat corpse                                                        
+orc corpse                                                       
+lizard man corpse                                                
+fire beetle corpse                                               
+large kobold corpse                                               
+goblin rockthrower corpse                                         
+goblin rockthrower corpse                                         
+kobold chieftain corpse                                           
+large kobold corpse                                               
+large spider corpse                                               
+black hurthling corpse                                           
+large bat corpse                                                  
+large bat corpse                                                  
+giant rat corpse                                                  
+hobgoblin corpse                                                 
+fire beetle corpse                                               
+large orc corpse                                                 
+kobold chieftain corpse                                           
+lizard man corpse                                                
+lizard man corpse                                                
+kobold corpse                                                     
+goblin slavemaster corpse                                         
+goblin slavemaster corpse                                         
+orc corpse                                                       
+hobgoblin corpse                                                 
+large kobold corpse                                               
+fire beetle corpse                                               
+giant rat corpse                                                  
+goblin corpse                                                     
+huge bat corpse                                                  
+large orc corpse                                                 
+large orc corpse                                                 
+giant bat corpse                                                 
+large kobold corpse                                               
+dwarf corpse                                                      
+goblin corpse                                                     
+goblin slavemaster corpse                                         
+kobold chieftain corpse                                           
+jackal corpse                                                     
+giant bat corpse                                                 
+giant rat corpse                                                  
+goblin chieftain corpse                                           
+giant rat corpse                                                  
+gnoll corpse                                                     
+orc corpse                                                       
+hobgoblin corpse                                                 
+large bat corpse                                                  
+pixie corpse                                                      

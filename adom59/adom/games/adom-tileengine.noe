@@ -1,0 +1,175 @@
+
+tiles = {}
+
+tilesmeta = {}
+
+setmetatable(tiles, tilesmeta)
+
+tilemeta = {}
+
+function tilesmeta.__index(table, gfxname)
+  if gfxname == nil then
+    logprint2(debug.traceback())
+    end
+  local tile = {name = gfxname}
+  table[gfxname] = tile
+  setmetatable(tile, tilemeta)
+  return tile
+  end
+
+tilecreators = {}
+
+function tilemeta.__index(table, field)
+  tile_again = false
+  local v = tilecreators[field](table)
+  if not tile_again then table[field] = v end
+  return v
+  end
+
+local laddtile = addtile
+
+function addtile0(img, ox,oy, sx,sy, b)
+  if img > 0 then return addtile(img,ox,oy,sx,sy,b) end
+  return 0
+  end
+
+function tilecreators.pic(t)
+  if gfx_exists(t.name) then
+    local z = loadimage(gfxa..t.name..".png")
+    if z == 0 then z = loadimage(gfxa..t.name..".jpg") end
+    return z
+  else
+    return 0
+    end
+  end
+
+function tilecreators.size(t)
+  if t.pic == 0 then
+    return V(0,0)
+    end
+  local imgsiz = imggetsize(t.pic)
+  return V(imgsiz.x, imgsiz.y)
+  end
+
+function tilecreators.buttonsize(t)
+  return t.size
+  end
+
+function tilecreators.captionoffset(t)
+  return V(0,0)
+  end
+
+function tilecreators.t(t)
+  return addtile0(t.pic, 0, 0, t.size.x, t.size.y, t.bak)
+  end
+
+-- cut image for dynamic display
+function tilecreators.cut(t)
+  for y=0,47 do for x=0,63 do
+    if bAND(getpixel(t.pic, x, y), 0xFF000000) > 0x20000000 then
+      return addtile0(t.pic, 0, y, 64, 16, t.bak)
+      end
+    end end
+  return addtile0(t.pic, 0, 16, 64, 16, t.bak)
+  end
+
+-- tilescale shift vector
+function tilecreators.dxy(t)
+  return V(0,0)
+  end
+
+-- background color
+function tilecreators.bak(t)
+  return transAlpha
+  end
+
+function tilecreators.loaded(t)
+  return false
+  end
+
+function tilecreators.transNone(t)
+  t.bak = transNone
+  return t
+  end
+
+function tilecreators.variants(t)
+  return false
+  end
+
+function tilecreators.scaled(t)
+  return 
+    tiletransform(t.t,
+      0.5-t.size.x/tsx/2 + t.dxy.x, 0.5-t.size.y/tsy/2 + t.dxy.y, 
+      t.size.x/tsx, t.size.y/tsy)
+  end
+
+function tilecreators.forced(t)
+  if t.t == 0 then
+    picmissing = true
+    tile_again = true
+    end
+  return t.t
+  end
+  
+function tilecreators.scaledforced(t)
+  if t.scaled == 0 then
+    picmissing = true
+    tile_again = true
+    end
+  return t.scaled
+  end
+
+function tilecreators.land(t)
+
+  local P = t.pic
+  if P==0 or not P then return 0 end
+  -- 89x73: 
+  -- 
+  local center = addtile(P, 12, 12, 64, 48, transAlpha)
+  
+  function cut(x0, y0, sx, sy)
+    tf = tiletransform(
+      addtile(P, x0, y0, sx, sy, transAlpha),
+      (x0-12)/64, (y0-12)/48, sx/64, sy/48
+      )
+    return tf
+    end
+  
+  --local tf4 = tilemerge4(
+  --    cut(0, 0, 89, 12), cut(0, 12, 12, 61),
+  --    cut(76, 12, 13, 61), cut(12, 60, 77, 13)
+  --    )
+  
+  return tilemerge(
+    tilespatial(center, spFloor + spIFloor),
+    tilespatial(cut(0, 0, 89, 73), spFlat)
+    )
+  
+  --tilemerge(
+  --  tilespatial(center, spFlat + spFloor + spIFloor),
+  --  tilelayer(tilespatial(tf4, spFlat), 1)
+  --  )
+  
+  end
+
+function adomtile(f, bak, dx, dy)
+  tiles[f].bak = bak
+  if dx and dy then
+    tiles[f].dxy = V(dx, dy)
+    end
+  return tiles[f].forced
+  end
+
+-- loading tiles:
+------------------
+
+gfx_exists_cache = {}
+
+function gfx_exists(name)
+  if gfx_exists_cache[name] then 
+    return gfx_exists_cache[name].v
+    end
+  gfx_exists_cache[name] = {v = file_exists(gfxa..name..".png") or file_exists(gfxa..name..".jpg")}
+  return gfx_exists_cache[name].v
+  end
+

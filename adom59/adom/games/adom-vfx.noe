@@ -1,0 +1,423 @@
+-- Visual Effects
+
+healinginfo = {}
+
+-- event handling --
+--================--
+
+function is_missile_weapon(iwt)
+  return iwt == itemweapontypeids.IWT_CROSSBOW or
+         iwt == itemweapontypeids.IWT_SHORTBOW or
+         iwt == itemweapontypeids.IWT_LONGBOW or
+         iwt == itemweapontypeids.IWT_SLING or
+         iwt == itemweapontypeids.IWT_THROWING_CLUB or
+         iwt == itemweapontypeids.IWT_ITEM or
+         iwt == itemweapontypeids.IWT_SCURGAR or
+         iwt == itemweapontypeids.IWT_BOOMERANG
+  end
+
+function is_shield(iwt)
+  return iwt == itemweapontypeids.IWT_SMALL_SHIELD or
+         iwt == itemweapontypeids.IWT_MEDIUM_SHIELD or
+         iwt == itemweapontypeids.IWT_LARGE_SHIELD or
+         iwt == itemweapontypeids.IWT_TOWER_SHIELD
+  end
+
+
+function handle_game_event_vfx(ev)
+
+  handle_gambling_machine_events(ev)
+  handle_monster_memory_events(ev)
+  handle_background_image_events(ev)
+
+  if (ev.game_event_id == gameeventids.GE_TEXT_WINDOW_DISPLAYED) then
+    ev.line = 0
+--    print("open window type "..ev.window_type)
+    opentextwindow(ev)
+    if true then
+      textwindow = ev
+      end
+  elseif (ev.game_event_id == gameeventids.GE_TEXT_WINDOW_CLOSED) then
+--    print("close window type "..ev.window_type)
+    if textwindow then
+      textwindow.t.close()
+      textwindow = nil
+      end
+    end
+
+  if ev.game_event_id == gameeventids.GE_HITPOINTS_GAINED or
+     ev.game_event_id == gameeventids.GE_HITPOINTS_LOST then
+    if not healinginfo[ev.uid] then healinginfo[ev.uid] = {} end
+    healinginfo[ev.uid] = { time = getticks(), difference = ev.difference }
+    end
+
+  if ev.game_event_id == gameeventids.GE_WEAPON_USED or
+     ev.game_event_id == gameeventids.GE_MELEE_ATTACK then
+--    for k,v in pairs(ev) do
+--      print(tostring(k).." = "..tostring(v))
+--      end
+
+    if ev.item_weapon_type == itemweapontypeids.IWT_NONE or
+       is_missile_weapon(ev.item_weapon_type) or
+       is_shield(ev.item_weapon_type) then return end
+       
+    local mid
+    if mapcache[ev.y] then
+      local c = mapcache[ev.y][ev.x]
+      mid = c.monster and c.monster.uid
+      if c.being_type == -1 then mid = "player" end
+      end
+--    print("set to mid = "..tostring(mid))
+    if mid then
+      monster_attack_animations[mid] = {
+        time = getticks(), vector = adom_to_noteye_dir[ev.direction] 
+        }
+      end
+    end
+  
+  if ev.game_event_id == gameeventids.GE_NE_ALTERNATE_DISPLAY_MODE and ev.game_event_id then
+    togglealtmode()
+    end
+  
+  if ev.game_event_id == gameeventids.GE_MESSAGE_BUFFER_UPDATED then
+--  print("message debug:")
+--  for k,v in pairs(adom_nelib_message_buffer()) do
+--    print(tostring(k)..": "..(type(v) == "table" and tostring(v.line) or tostring(v)))
+--    end
+    end
+    
+  if ev.game_event_id == gameeventids.GE_MESSAGE_LINE_UPDATED then
+    -- local b = adom_nelib_message_buffer()
+    logprint2("message line: "..(ev.line))
+    last_message_event = getticks()
+    add_adom_message(ev.line, ev.updated, ev.question)
+    end
+
+  if ev.game_event_id == gameeventids.GE_LAST_MESSAGE_LINE_DELETED then
+    delete_last_message()
+    end
+    
+  if ev.game_event_id == gameeventids.GE_MESSAGE_BUFFER_CLEARED then
+    clear_adom_messages()
+    end
+    
+  if (ev.game_event_id == gameeventids.GE_MAP_CHANGED) then
+    clearmoveanimations()
+    end
+
+  if ev.game_event_id == gameeventids.GE_NE_ALTERNATE_DISPLAY_MODE then
+    togglealtmode()
+    end
+    
+  if ev.game_event_id == gameeventids.GE_NE_COMMAND_ACTIVATE_EXPERT_MENU then
+    noteyemenu()
+    end
+    
+  if ev.game_event_id == gameeventids.GE_NE_CHANGE_NOTEYE_VARIABLE then
+    for k,v in pairs(ev) do
+      if k ~= "game_event_id" and k ~= "name" and k ~= "value" then
+        noteye_config_variable_change(k, v)
+        end
+      end
+    if (ev.name ~= nil) then
+      noteye_config_variable_change(ev.name, ev.value)
+      end
+    end
+  
+  -- todo: refactor this
+
+  if (ev.game_event_id == gameeventids.GE_OVERLAY_INFO_SET) then
+    local time = overlay_last and overlay_last.endtime
+    local msp = 10 / spdMissile
+
+    if ev.effect_type ~= effecttypeids.NO_EFFECT
+    and ev.effect_type ~= effecttypeids.ET_LIGHTNING_BOLT 
+    and ev.effect_type ~= effecttypeids.ET_FIRE_BOLT 
+    and ev.effect_type ~= effecttypeids.ET_ICE_BOLT
+    and ev.effect_type ~= effecttypeids.ET_ACID_BOLT
+    and ev.effect_type ~= effecttypeids.ET_DEATH_RAY
+    and ev.effect_type ~= effecttypeids.ET_STUN_RAY
+    and ev.effect_type ~= effecttypeids.ET_ENERGY_RAY
+    then 
+      msp = 0
+      end
+
+    if ctrlpressed() then msp = 0 end
+    if (not time) or time < os.clock() - msp then
+      time = os.clock()
+      end
+    overlay_now = {
+      starttime = time,
+      endtime = time + msp,
+      type = ev.effect_type,
+      step = ev.current_step
+      }
+    end
+    
+  if (ev.game_event_id == gameeventids.GE_OVERLAY_INFO_FINISHED) then
+    if ev.effect_type >= 0 then
+      local time = overlay_last and overlay_last.endtime
+      local msp = 50 / spdMissile
+
+      if ev.effect_type ~= effecttypeids.ET_LIGHTNING_BOLT then
+        msp = 0
+        end
+
+      if ctrlpressed() then msp = 0 end
+      if (not time) or time < os.clock() - msp then
+        time = os.clock()
+        end
+      overlay_now = {
+        starttime = time,
+        endtime = time + msp,
+        step = overlay_last and overlay_last.step,
+        type = ev.effect_type,
+        finished = true
+        }
+    else
+      cancelui = true
+      end
+    end
+
+  if (ev.game_event_id == gameeventids.GE_OVERLAY_INFO_CLEARED) then
+    if ev.effect_type >= 0 then
+      local time = overlay_last and overlay_last.endtime
+      local msp = 1 / spdMissile
+
+      if ev.effect_type ~= effecttypeids.ET_LIGHTNING_BOLT then
+        msp = 0
+        end
+
+      if ctrlpressed() then msp = 0 end
+      if (not time) or time < os.clock() - msp then
+        time = os.clock()
+        end
+      overlay_now = {
+        starttime = time,
+        endtime = time + msp,
+        step = overlay_last.step,
+        clear_step = ev.effect_step,
+        type = ev.effect_type,
+        clearing = true
+        }
+    else
+      cancelui = true
+      end
+    end
+
+end
+
+-- (see drawBackground)
+
+function handle_background_image_events(ev)
+  local id = ev.game_event_id
+  if (id == gameeventids.GE_MAIN_MENU_DISPLAYED) then
+    background_tile = adomtile("nterface/background/main", transAlpha)
+    openadommainmenu(ev)
+  elseif (id == gameeventids.GE_TEAM_ADOM_DISPLAYED) then
+    openteamadomscreen(ev)
+  elseif (id == gameeventids.GE_DEATH_SPLASH_DISPLAYED) then
+    fadeout_animation = { time = getticks(), color = 0x400000 }
+    background_tile = adomtile("nterface/background/death_splash", transAlpha)
+  elseif (id == gameeventids.GE_DEATH_MENU_DISPLAYED) then
+    background_tile = adomtile("nterface/background/death_menu", transAlpha)
+  elseif (id == gameeventids.GE_VICTORY_SPLASH_DISPLAYED) then
+    fadeout_animation = { time = getticks(), color = 0xFFFFFF }
+    background_tile = adomtile("nterface/background/victory_splash", transAlpha)
+  elseif (id == gameeventids.GE_VICTORY_MENU_DISPLAYED) then
+    background_tile = adomtile("nterface/background/victory_menu", transAlpha)
+  elseif (id == gameeventids.GE_QUIT_SPLASH_DISPLAYED) then
+    fadeout_animation = { time = getticks(), color = 0 }
+    background_tile = adomtile("nterface/background/quit_splash", transAlpha)
+  elseif (id == gameeventids.GE_QUIT_MENU_DISPLAYED) then
+    background_tile = adomtile("nterface/background/quit_menu", transAlpha)
+  elseif (id == gameeventids.GE_CREDITS_DISPLAYED) then
+    background_tile = adomtile("nterface/background/main", transAlpha)
+  elseif (id == gameeventids.GE_TITLE_SCREEN_DISPLAYED) then
+    background_tile = adomtile("nterface/background/main", transAlpha)
+    opentitlescreen(ev)
+  elseif (id == gameeventids.GE_SETTINGS_SCREEN_DISPLAYED) then
+    background_tile = adomtile("nterface/background/generic_text", transAlpha)
+    openscreen(nil)
+  elseif (id == gameeventids.GE_GENERIC_TEXT_DISPLAYED) and graphicalUI() then
+    background_tile = adomtile("nterface/background/generic_text", transAlpha)
+  elseif ((id == gameeventids.GE_MAIN_MENU_CLOSED) or
+          (id == gameeventids.GE_DEATH_SPLASH_CLOSED) or
+          (id == gameeventids.GE_DEATH_MENU_CLOSED) or
+          (id == gameeventids.GE_VICTORY_SPLASH_CLOSED) or
+          (id == gameeventids.GE_VICTORY_MENU_CLOSED) or
+          (id == gameeventids.GE_QUIT_SPLASH_CLOSED) or
+          (id == gameeventids.GE_QUIT_MENU_CLOSED) or
+          (id == gameeventids.GE_TEAM_ADOM_CLOSED) or
+          (id == gameeventids.GE_CREDITS_CLOSED) or
+          (id == gameeventids.GE_SETTINGS_SCREEN_CLOSED) or
+          (id == gameeventids.GE_GENERIC_TEXT_CLOSED)
+         ) then
+    fadeout_animation = nil
+    background_tile = nil
+    openscreen(nil)
+  end
+end
+
+-- specific visual effects: Casino --
+
+function handle_gambling_machine_events(ev)
+  if (ev.game_event_id == gameeventids.GE_GAMBLING_MACHINE_START) then
+      casino = ev
+      casino.jump1 = math.random(1000000)
+      casino.jump2 = math.random(1000000)
+      casino.jump3 = math.random(1000000)
+      casino.time = 0
+--    print("Gambling machine start")
+  elseif (ev.game_event_id == gameeventids.GE_GAMBLING_MACHINE_FINISH) then
+--    print("Gambling machine finish")
+      casino = nil
+  elseif (ev.game_event_id == gameeventids.GE_CASINO_PLAYER_LOST) then
+--    print("Player lost")
+      if casino then casino.time = 0 end
+  elseif (ev.game_event_id == gameeventids.GE_CASINO_PLAYER_WON) then
+--    print("Player won")
+      if casino then casino.time = 0 end
+  elseif (ev.game_event_id == gameeventids.GE_CASINO_PLAYER_WON_BIG_TIME) then
+--    print("Player won big time")
+      if casino then casino.time = 0 end
+  elseif (ev.game_event_id == gameeventids.GE_GAMBLING_MACHINE_SYMBOLS) then
+      casino = ev
+      ev.jump1 = casino.jump1
+      ev.jump2 = casino.jump2
+      ev.jump3 = casino.jump3
+      casino.time = getticks()
+--    print(."Gambling machine symbols")
+--    print("Symbol1 "..ev.symbol1)
+--    print("Symbol2 "..ev.symbol2)
+--    print("Symbol3 "..ev.symbol3)
+  end
+end
+
+casinoimg = {
+  "NPC/5", "NPC/0", "NPC/4", "NPC/13", "NPC/23", "NPC/192", "NPC/47", "NPC/36", 
+  "FX/casino/hero", "items/item-1", "items/item171", "items/item696", "items/item728",
+  "items/item543", "items/item407", "NPC/402", "NPC/143", "NPC/146"}
+
+casinoup = {}
+casinodn = {}
+
+function drawcasino()
+  V.drawtile(D.output, tilefill(0xFFFFFFFF), cmini)
+  if casino then
+    local ax = cmini.top.x + minimapsize.x
+    local ay = cmini.top.y + minimapsize.y
+    local wx = (cmini.size.x - 2*minimapsize.x) / 3
+    local wy = cmini.size.y - 2*minimapsize.y
+    drawtile(D.output, tilefill(0), ax+wx-1, ay, 2, wy)
+    drawtile(D.output, tilefill(0), ax+2*wx-1, ay, 2, wy)
+    
+    local function dsymbol(id, x, bon)
+      if id then
+        drawtile(D.output, adomtile(casinoimg[id+1], transAlpha), x, ay, wx, wy)
+      else 
+        local sh = getticks() + (bon or 0)
+        local spin = sh % wy
+        local id1 = math.floor(((sh/wy)+1) % 18) + 1
+        local id2 = math.floor(((sh/wy)+0) % 18) + 1
+
+        if not casinoup[spin*18+id1] then 
+          local sid1 = casinoimg[id1]
+          adomtile(sid1, transAlpha)
+          local imgsiz = tiles[sid1].size
+          ly = math.ceil(imgsiz.y*spin/wy)
+          casinoup[spin*18+id1] = ly>0 and addtile(tiles[sid1].pic, 0, imgsiz.y-ly, imgsiz.x, ly, transAlpha) or 0
+          end
+
+        if not casinodn[spin*18+id2] then 
+          local sid2 = casinoimg[id2]
+          adomtile(sid2, transAlpha)
+          local imgsiz = tiles[sid2].size
+          ly = math.ceil(imgsiz.y*(wy-spin)/wy)
+          casinodn[spin*18+id2] = ly>0 and addtile(tiles[sid2].pic, 0, 0, imgsiz.x, imgsiz.y*(wy-spin)/wy, transAlpha) or 0
+          end
+        
+        if spin>0 then
+          drawtile(D.output, casinoup[spin*18+id1], x, ay, wx, spin)
+          end
+        if spin < wy then
+          drawtile(D.output, casinodn[spin*18+id2], x, ay+spin, wx, wy-spin)
+          end
+        end
+      end
+
+    dsymbol(casino.symbol1, ax, casino.jump1)
+    dsymbol(getticks() > casino.time+300 and casino.symbol2, ax+wx, casino.jump2)
+    dsymbol(getticks() > casino.time+600 and casino.symbol3, ax+wx+wx, casino.jump3)
+    end
+  V.drawtile(D.output, adomtile("nterface/map", transAlpha), cmini)
+  end
+
+-- specific visual effects: Monster Memory --
+
+function handle_monster_memory_events(ev)
+  if (ev.game_event_id == gameeventids.GE_MONSTER_MEMORY_DISPLAYED) then
+    monstershown = { filename = ev.filename, type = ev.being_type, time = getticks() }
+  elseif (ev.game_event_id == gameeventids.GE_MONSTER_MEMORY_CLOSED) then
+    monstershown = nil
+  end
+end
+
+ChMonstermemory = {}
+
+function triggergameeventid(id)
+  adom_nelib_trigger_game_event_id(id)
+  end
+
+function drawmonstermemory()
+  Ch = ChMonstermemory
+  local m
+  
+  if monstershown.filename then
+    m = adommon({s = "nterface/credits/"..monstershown.filename, direction = 0})
+  elseif monstershown.type == -1 then
+    PCData.direction = 0
+    local img = getpctile(PCData)
+    m = adommon({being_type = beingtypes.PC, tile = img, direction = 0, size = PCData.size})
+  elseif monstershown.type then
+    m = adommon({being_type = monstershown.type, direction = 0})
+  else
+    m = 0
+    end
+  
+  local zoomf = math.ceil(scrsize.y/150)
+  
+  local tx = screen.ctr.x - 32*zoomf
+  local ty = screen.bot.y - 36*zoomf
+  local sx = 64*zoomf
+  local sy = 48*zoomf
+  
+  for u=-1,1 do 
+  
+    picktileset(M)
+
+    drawtile(Gfx, tstile("floors/floor", -1), 
+      tx+u*sx, ty, sx, sy
+      )
+
+    drawtile(Gfx, tstile("walls/wall_N", -1), 
+      tx+u*sx, ty-sy, sx, sy
+      )
+
+    drawtile(Gfx, tstile("walls/empty", -1), 
+      tx+u*sx, ty-2*sy, sx, sy
+      )
+    end
+
+  drawtile(Gfx, m, tx, ty, sx, sy)
+
+  local ly = math.floor((getticks() - monstershown.time) / 25 - 25)
+  if m==0 then ly = 25 end
+  if ly < 0 then ly = 0 end
+  
+  if ly < 25 then
+    scrfill(IMG, 0, ly, 80, 25, 0)
+    end
+  
+  end
+
