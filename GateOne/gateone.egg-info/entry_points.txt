@@ -1,0 +1,21 @@
+[console_scripts]
+gateone = gateone.core.server:main
+
+[go_plugins]
+editor = gateone.plugins.editor
+help = gateone.plugins.help
+
+[go_terminal_plugins]
+html = gateone.applications.terminal.plugins.html
+convenience = gateone.applications.terminal.plugins.convenience
+notice = gateone.applications.terminal.plugins.notice
+example = gateone.applications.terminal.plugins.example
+ssh = gateone.applications.terminal.plugins.ssh
+bookmarks = gateone.applications.terminal.plugins.bookmarks
+playback = gateone.applications.terminal.plugins.playback
+logging = gateone.applications.terminal.plugins.logging
+
+[go_applications]
+terminal = gateone.applications.terminal
+example = gateone.applications.example
+
